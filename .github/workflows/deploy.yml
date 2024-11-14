@@ -1,0 +1,120 @@
+name: Deploy to Server and Build APK
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # Job for deploy backend
+  deploy-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest .
+          docker push ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest
+
+      - name: Set up SSH for server access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+
+      - name: Copy Docker Compose to server
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/id_ed25519" docker-compose.yml root@"$SERVER_IP":/var/www/pay_aware
+
+      - name: Set up backend environment variables
+        run: |
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'ENV=${{ secrets.BACKEND_ENV }}' > /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_HOST=${{ secrets.BACKEND_DB_HOST }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_PORT=${{ secrets.BACKEND_DB_PORT }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_USER=${{ secrets.BACKEND_DB_USER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_PASSWORD=${{ secrets.BACKEND_DB_PASSWORD }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_NAME=${{ secrets.BACKEND_DB_NAME }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'JWT_SECRET=${{ secrets.BACKEND_JWT_SECRET }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_ADDR=${{ secrets.BACKEND_REDIS_ADDR }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_PASSWORD=${{ secrets.BACKEND_REDIS_PASSWORD }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}' >> /var/www/pay_aware/.env"
+
+      - name: Deploy with Docker Compose
+        run: |
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d"
+
+    # Job on build APK for frontend
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "18"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Install dependencies
+        working-directory: ./subscription-manager
+        run: |
+          npm install --legacy-peer-deps
+          npm install -g eas-cli
+
+      # Uncomment if dependencies like Expo core are needed
+      # - name: Install Expo Dependencies
+      #   working-directory: ./subscription-manager
+      #   run: |
+      #     npx expo install expo-modules-core expo-application expo-constants
+      #     npx expo install --check
+
+      - name: Set up frontend environment variables
+        run: |
+          echo "ENVIRONMENT=${{ secrets.FRONTEND_ENVIRONMENT }}" > ./subscription-manager/.env
+          echo "API_URL=${{ secrets.FRONTEND_API_URL }}" >> ./subscription-manager/.env
+
+      - name: Build APK with EAS
+        working-directory: ./subscription-manager
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas build -p android --profile production --non-interactive
+
+      - name: Get APK URL and Download APK
+        working-directory: ./subscription-manager
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          APK_URL=$(eas build:list --status=finished --limit=1 --json | jq -r '.[0].artifacts.buildUrl')
+          curl -o app-release.apk "$APK_URL"
+
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-release
+          path: ./subscription-manager/app-release.apk

@@ -19,11 +19,15 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "usesCleartextTraffic": true
+      "package": "com.pushkin85.mil.subscriptionmanager"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "projectId": "6e51137e-084d-4364-a90c-14f366df944e"
+    "extra": {
+      "eas": {
+        "projectId": "6e51137e-084d-4364-a90c-14f366df944e"
+      }
+    }
   }
 }
