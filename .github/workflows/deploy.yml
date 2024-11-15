@@ -28,16 +28,19 @@ jobs:
       - name: Set up SSH for server access
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_USER: ${{ secrets.SSH_USER }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          echo -e "Host spaceweb\n  HostName $SERVER_IP\n  User $SSH_USER\n  IdentityFile ~/.ssh/id_ed25519\n  IdentitiesOnly yes" > ~/.ssh/config
+          chmod 600 ~/.ssh/config
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
       - name: Copy Docker Compose to server
         run: |
-          rsync -avz -e "ssh -i ~/.ssh/id_ed25519" docker-compose.yml root@"$SERVER_IP":/var/www/pay_aware
+          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml $SSH_USER@"$SERVER_IP":/var/www/pay_aware
 
       - name: Set up backend environment variables
         run: |
