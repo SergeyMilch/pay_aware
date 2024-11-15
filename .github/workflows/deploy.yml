@@ -44,27 +44,27 @@ jobs:
 
       - name: Set up backend environment variables
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'ENV=${{ secrets.BACKEND_ENV }}' > /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_HOST=${{ secrets.BACKEND_DB_HOST }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_PORT=${{ secrets.BACKEND_DB_PORT }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_USER=${{ secrets.BACKEND_DB_USER }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_PASSWORD=${{ secrets.BACKEND_DB_PASSWORD }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'DB_NAME=${{ secrets.BACKEND_DB_NAME }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'JWT_SECRET=${{ secrets.BACKEND_JWT_SECRET }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_ADDR=${{ secrets.BACKEND_REDIS_ADDR }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_PASSWORD=${{ secrets.BACKEND_REDIS_PASSWORD }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'BACKEND_KAFKA_LISTENERS=${{ secrets.BACKEND_KAFKA_LISTENERS }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'BACKEND_KAFKA_ADVERTISED_LISTENERS=${{ secrets.BACKEND_KAFKA_ADVERTISED_LISTENERS }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}' >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'ENV=${{ secrets.BACKEND_ENV }}' > /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'DB_HOST=${{ secrets.BACKEND_DB_HOST }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'DB_PORT=${{ secrets.BACKEND_DB_PORT }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'DB_USER=${{ secrets.BACKEND_DB_USER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'DB_PASSWORD=${{ secrets.BACKEND_DB_PASSWORD }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'DB_NAME=${{ secrets.BACKEND_DB_NAME }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'JWT_SECRET=${{ secrets.BACKEND_JWT_SECRET }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'REDIS_ADDR=${{ secrets.BACKEND_REDIS_ADDR }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'REDIS_PASSWORD=${{ secrets.BACKEND_REDIS_PASSWORD }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'BACKEND_KAFKA_LISTENERS=${{ secrets.BACKEND_KAFKA_LISTENERS }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'BACKEND_KAFKA_ADVERTISED_LISTENERS=${{ secrets.BACKEND_KAFKA_ADVERTISED_LISTENERS }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "echo 'EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}' >> /var/www/pay_aware/.env"
 
       - name: Deploy with Docker Compose
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d"
+          ssh -i ~/.ssh/id_ed25519 $SSH_USER@"$SERVER_IP" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d"
 
     # Job on build APK for frontend
   build-apk:
