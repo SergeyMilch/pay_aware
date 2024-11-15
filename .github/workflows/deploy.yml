@@ -38,6 +38,15 @@ jobs:
           chmod 600 ~/.ssh/config
           ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
 
+        # Шаг для отладки
+      - name: Debug SSH_USER and SERVER_IP
+        run: |
+          echo "SSH_USER: $SSH_USER"
+          echo "SERVER_IP: $SERVER_IP"
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+
       - name: Copy Docker Compose to server
         run: |
           rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "$SSH_USER@$SERVER_IP:/var/www/pay_aware"
