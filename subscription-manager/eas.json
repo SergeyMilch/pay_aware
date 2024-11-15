@@ -5,10 +5,7 @@
         "buildType": "apk",
         "credentialsSource": "remote",
         "image": "ubuntu-22.04-jdk-17-ndk-r21e",
-        "gradleCommand": ":app:assembleRelease",
-        "experimental": {
-          "splitApks": true
-        }
+        "gradleCommand": ":app:assembleRelease"
       }
     }
   }

@@ -12,10 +12,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
@@ -53,6 +53,8 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}' >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}' >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'BACKEND_KAFKA_LISTENERS=${{ secrets.BACKEND_KAFKA_LISTENERS }}' >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'BACKEND_KAFKA_ADVERTISED_LISTENERS=${{ secrets.BACKEND_KAFKA_ADVERTISED_LISTENERS }}' >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}' >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}' >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 root@"$SERVER_IP" "echo 'EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}' >> /var/www/pay_aware/.env"
@@ -67,7 +69,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Node.js
         uses: actions/setup-node@v2
@@ -114,7 +116,7 @@ jobs:
           curl -o app-release.apk "$APK_URL"
 
       - name: Upload APK as artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: app-release
           path: ./subscription-manager/app-release.apk
