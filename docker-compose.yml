@@ -10,8 +10,6 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - pay_aware_network
     healthcheck:
@@ -26,8 +24,6 @@ services:
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"] # Добавлена команда для установки пароля
-    ports:
-      - "6379:6379"
     networks:
       - pay_aware_network
     healthcheck:
@@ -37,13 +33,11 @@ services:
       retries: 5
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:latest
+    image: bitnami/zookeeper:latest
     container_name: pay_aware_zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
     networks:
       - pay_aware_network
     healthcheck:
@@ -65,7 +59,7 @@ services:
       retries: 5
 
   kafka:
-    image: confluentinc/cp-kafka:latest
+    image: bitnami/kafka:latest
     container_name: pay_aware_kafka
     restart: always
     environment:
@@ -76,8 +70,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     depends_on:
       - zookeeper
-    ports:
-      - "9092:9092"
     networks:
       - pay_aware_network
     healthcheck:
@@ -87,35 +79,29 @@ services:
       retries: 5
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.2.0
+    image: bitnami/elasticsearch:8.2.0
     container_name: pay_aware_elasticsearch
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms256m -Xmx256m # Ограничение использования памяти
-    ports:
-      - "9200:9200"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - es_data:/bitnami/elasticsearch/data
     networks:
       - pay_aware_network
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.2.0
+    image: bitnami/kibana:8.2.0
     container_name: pay_aware_kibana
-    ports:
-      - "5601:5601"
     depends_on:
       - elasticsearch
     networks:
       - pay_aware_network
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.2.0
+    image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
-    ports:
-      - "5000:5000"
     volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logstash.conf:/bitnami/logstash/pipeline/logstash.conf
     depends_on:
       - elasticsearch
     networks:
@@ -144,10 +130,13 @@ services:
       - redis
       - kafka
       - logstash
-    ports:
-      - "8000:8000"
     networks:
       - pay_aware_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # frontend:
   #   build:
