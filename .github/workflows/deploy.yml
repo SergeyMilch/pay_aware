@@ -46,7 +46,7 @@ jobs:
 
       - name: Validate SSH_USER and SERVER_IP
         run: |
-          if [ -z "$SSH_USER" ] || [ -z "$SERVER_IP" ]; then
+          if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SERVER_IP }}" ]; then
             echo "Error: SSH_USER or SERVER_IP is not set"
             exit 1
           fi
