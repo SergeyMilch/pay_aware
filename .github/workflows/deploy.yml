@@ -43,12 +43,17 @@ jobs:
         run: |
           echo "SSH_USER: $SSH_USER"
           echo "SERVER_IP: $SERVER_IP"
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
+
+      - name: Validate SSH_USER and SERVER_IP
+        run: |
+          if [ -z "$SSH_USER" ] || [ -z "$SERVER_IP" ]; then
+            echo "Error: SSH_USER or SERVER_IP is not set"
+            exit 1
+          fi
 
       - name: Copy Docker Compose to server
         run: |
+          echo "Connecting to: $SSH_USER@$SERVER_IP"
           rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "$SSH_USER@$SERVER_IP:/var/www/pay_aware"
 
       - name: Set up backend environment variables
