@@ -73,7 +73,7 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}\" >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}\" >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}\" > /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}\" >> /var/www/pay_aware/.env"
 
       - name: Deploy with Docker Compose
         run: |
