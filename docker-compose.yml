@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:17-alpine
@@ -108,9 +106,7 @@ services:
       - pay_aware_network
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${DOCKER_USERNAME}/pay_aware_app:latest
     container_name: pay_aware_app
     restart: always
     environment:
@@ -130,6 +126,8 @@ services:
       - redis
       - kafka
       - logstash
+    ports:
+      - "8000:8000"
     networks:
       - pay_aware_network
     healthcheck:
