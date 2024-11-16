@@ -131,6 +131,8 @@ services:
       - "8000:8000"
     networks:
       - pay_aware_network
+    volumes:
+      - /var/www/pay_aware/.env:/app/.env
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 10s
