@@ -6,29 +6,31 @@ on:
       - main
 
 jobs:
+  # Using a flag to control the execution of a job
+  set-deployment-flag:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_backend: ${{ steps.set-flag.outputs.deploy_backend }}
+    steps:
+      - name: Set Deployment Flag
+        id: set-flag
+        run: |
+          if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
+            echo "deploy_backend=true" >> $GITHUB_ENV
+            echo "::set-output name=deploy_backend::true"
+          else
+            echo "deploy_backend=false" >> $GITHUB_ENV
+            echo "::set-output name=deploy_backend::false"
+          fi
+
   # Job for deploy backend
   deploy-backend:
+    if: ${{ needs.set-deployment-flag.outputs.deploy_backend == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      # Using a flag to control the execution of a job
-      # Set an environment variable based on the secret value of DEPLOY_BACKEND
-      - name: Set Deployment Flag
-        run: |
-          if [ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]; then
-            echo "DEPLOY_BACKEND=true" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_BACKEND=false" >> $GITHUB_ENV
-          fi
-
-      # Conditionally deploy the backend
-      - name: Deploy Backend
-        if: env.DEPLOY_BACKEND == 'true'
-        run: |
-          echo "Deploying backend..."
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
