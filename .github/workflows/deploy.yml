@@ -9,33 +9,28 @@ jobs:
   # Using a flag to control the execution of a job
   set-deployment-flag:
     runs-on: ubuntu-latest
-    outputs:
-      deploy_backend: ${{ steps.set-backend-flag.outputs.deploy_backend }}
-      deploy_frontend: ${{ steps.set-frontend-flag.outputs.deploy_frontend }}
     steps:
       - name: Set Deployment Flag for Backend
-        id: set-backend-flag
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
-            echo "deploy_backend=true" >> $GITHUB_OUTPUT
+            echo "deploy_backend=true" >> $GITHUB_ENV
           else
-            echo "deploy_backend=false" >> $GITHUB_OUTPUT
+            echo "deploy_backend=false" >> $GITHUB_ENV
           fi
 
       - name: Set Deployment Flag for Frontend
-        id: set-frontend-flag
         run: |
           if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
-            echo "deploy_frontend=true" >> $GITHUB_OUTPUT
+            echo "deploy_frontend=true" >> $GITHUB_ENV
           else
-            echo "deploy_frontend=false" >> $GITHUB_OUTPUT
+            echo "deploy_frontend=false" >> $GITHUB_ENV
           fi
 
   # Job for deploy backend
   deploy-backend:
     needs: set-deployment-flag
     runs-on: ubuntu-latest
-    if: needs.set-deployment-flag.outputs.deploy_backend == 'true'
+    if: env.deploy_backend == 'true'
 
     steps:
       # Conditional step to skip the job if the flag is false
@@ -130,7 +125,7 @@ jobs:
   build-apk:
     needs: set-deployment-flag
     runs-on: ubuntu-latest
-    if: needs.set-deployment-flag.outputs.deploy_frontend == 'true'
+    if: env.deploy_frontend == 'true'
 
     steps:
       # Conditional step to skip the job if the flag is false
