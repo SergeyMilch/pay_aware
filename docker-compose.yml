@@ -186,7 +186,7 @@ services:
       - "444:444" # HTTPS
       - "8080:80" # HTTP для редиректа на HTTPS
     volumes:
-      - /var/www/pay_aware/config/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /var/www/pay_aware/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /root/ssl-cert:/etc/ssl/private:ro # Папка с сертификатами
     depends_on:
       - app
