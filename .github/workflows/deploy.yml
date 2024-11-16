@@ -37,6 +37,10 @@ jobs:
           ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
 
       # Step  for debugging
+      - name: Test SSH connection
+        run: |
+          ssh -v -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo Connected successfully"
+
       - name: Debug SSH_USER and SERVER_IP
         run: |
           echo "SSH_USER: ${{ secrets.SSH_USER }}"
