@@ -173,6 +173,7 @@ services:
 
 networks:
   pay_aware_network:
+    name: pay_aware_network
     driver: bridge
 
 volumes:
