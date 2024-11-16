@@ -38,6 +38,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
       ZOO_SERVER_USERS: ${ZOO_SERVER_USERS}
       ZOO_SERVER_PASSWORDS: ${ZOO_SERVER_PASSWORDS}
+      ALLOW_ANONYMOUS_LOGIN: "no"
     networks:
       - pay_aware_network
     healthcheck:
@@ -104,7 +105,7 @@ services:
     image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
     volumes:
-      - ./logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
+      - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
     depends_on:
       - elasticsearch
     networks:

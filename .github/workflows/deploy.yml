@@ -10,13 +10,22 @@ jobs:
   set-deployment-flag:
     runs-on: ubuntu-latest
     steps:
-      - name: Set Deployment Flag
-        id: set-flag
+      - name: Set Deployment Flag for Backend
+        id: set-backend-flag
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
             echo "deploy_backend=true" >> $GITHUB_ENV
           else
             echo "deploy_backend=false" >> $GITHUB_ENV
+          fi
+
+      - name: Set Deployment Flag for Frontend
+        id: set-frontend-flag
+        run: |
+          if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
+            echo "deploy_frontend=true" >> $GITHUB_ENV
+          else
+            echo "deploy_frontend=false" >> $GITHUB_ENV
           fi
 
   # Job for deploy backend
@@ -75,6 +84,10 @@ jobs:
             exit 1
           fi
 
+      - name: Copy Logstash Configuration to server
+        run: |
+          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" logstash.conf "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
+
       - name: Copy Docker Compose to server
         run: |
           echo "Connecting to: ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}"
@@ -111,9 +124,18 @@ jobs:
 
     # Job on build APK for frontend
   build-apk:
+    needs: set-deployment-flag
     runs-on: ubuntu-latest
 
     steps:
+      # Conditional step to skip the job if the flag is false
+      - name: Check if frontend build is enabled
+        run: |
+          if [[ "${{ env.deploy_frontend }}" != "true" ]]; then
+            echo "Frontend build is disabled. Skipping..."
+            exit 0
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v3
 
