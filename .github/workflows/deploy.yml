@@ -36,7 +36,7 @@ jobs:
           chmod 600 ~/.ssh/config
           ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
 
-      # Step for debugging
+      # Step  for debugging
       - name: Debug SSH_USER and SERVER_IP
         run: |
           echo "SSH_USER: ${{ secrets.SSH_USER }}"
