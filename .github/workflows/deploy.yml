@@ -30,7 +30,6 @@ jobs:
   deploy-backend:
     needs: set-deployment-flag
     runs-on: ubuntu-latest
-    if: ${{ env.deploy_backend == 'true' }}
 
     steps:
       # Conditional step to skip the job if the flag is false
@@ -125,7 +124,6 @@ jobs:
   build-apk:
     needs: set-deployment-flag
     runs-on: ubuntu-latest
-    if: ${{ env.deploy_frontend == 'true' }}
 
     steps:
       # Conditional step to skip the job if the flag is false
