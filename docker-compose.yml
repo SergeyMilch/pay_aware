@@ -158,8 +158,8 @@ services:
     image: nginx:latest
     container_name: pay_aware_nginx
     ports:
-      - "444:443" # HTTPS
-      - "80:80" # HTTP для редиректа на HTTPS
+      - "444:444" # HTTPS
+      - "8080:80" # HTTP для редиректа на HTTPS
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - /root/ssl-cert:/etc/ssl/private:ro # Папка с сертификатами

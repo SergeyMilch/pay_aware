@@ -77,7 +77,7 @@ jobs:
 
       - name: Deploy with Docker Compose
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d && sleep 10 && docker-compose restart nginx"
 
     # Job on build APK for frontend
   build-apk:
