@@ -17,7 +17,7 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-    err := godotenv.Load()
+    err := godotenv.Load("/app/.env")
     if err != nil {
         logger.Warn("No .env file found", "error", err)
     } else {
