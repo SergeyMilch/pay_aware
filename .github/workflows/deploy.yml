@@ -7,26 +7,31 @@ on:
 
 jobs:
   # Using a flag to control the execution of a job
-  set-deployment-flag:
+ set-deployment-flag:
     runs-on: ubuntu-latest
-    outputs:
-      deploy_backend: ${{ steps.set-flag.outputs.deploy_backend }}
     steps:
       - name: Set Deployment Flag
         id: set-flag
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
             echo "deploy_backend=true" >> $GITHUB_ENV
-            echo "::set-output name=deploy_backend::true"
           else
             echo "deploy_backend=false" >> $GITHUB_ENV
-            echo "::set-output name=deploy_backend::false"
           fi
 
   # Job for deploy backend
   deploy-backend:
-    if: ${{ needs.set-deployment-flag.outputs.deploy_backend == 'true' }}
+    needs: set-deployment-flag
     runs-on: ubuntu-latest
+
+    steps:
+      # Conditional step to skip the job if the flag is false
+      - name: Check if backend deployment is enabled
+        run: |
+          if [[ "${{ env.deploy_backend }}" != "true" ]]; then
+            echo "Backend deployment is disabled. Skipping..."
+            exit 0
+          fi
 
     steps:
       - name: Checkout code
