@@ -7,7 +7,7 @@ on:
 
 jobs:
   # Using a flag to control the execution of a job
- set-deployment-flag:
+  set-deployment-flag:
     runs-on: ubuntu-latest
     steps:
       - name: Set Deployment Flag
@@ -33,7 +33,6 @@ jobs:
             exit 0
           fi
 
-    steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
