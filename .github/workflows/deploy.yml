@@ -100,6 +100,10 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}\" >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}\" >> /var/www/pay_aware/.env"
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}\" >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ZOO_SERVER_USERS=${{ secrets.BACKEND_ZOO_SERVER_USERS }}\" >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ZOO_SERVER_PASSWORDS=${{ secrets.BACKEND_ZOO_SERVER_PASSWORDS }}\" >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_ZOOKEEPER_USER=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_USER }}\" >> /var/www/pay_aware/.env"
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_ZOOKEEPER_PASSWORD=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_PASSWORD }}\" >> /var/www/pay_aware/.env"
 
       - name: Deploy with Docker Compose
         run: |

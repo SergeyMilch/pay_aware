@@ -36,6 +36,8 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+      ZOO_SERVER_USERS: ${ZOO_SERVER_USERS}
+      ZOO_SERVER_PASSWORDS: ${ZOO_SERVER_PASSWORDS}
     networks:
       - pay_aware_network
     healthcheck:
@@ -63,6 +65,8 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: pay_aware_zookeeper:2181
+      KAFKA_ZOOKEEPER_USER: ${KAFKA_ZOOKEEPER_USER}
+      KAFKA_ZOOKEEPER_PASSWORD: ${KAFKA_ZOOKEEPER_PASSWORD}
       KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
       KAFKA_LISTENERS: ${KAFKA_LISTENERS}
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -100,7 +104,7 @@ services:
     image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
     volumes:
-      - ./logstash.conf:/bitnami/logstash/pipeline/logstash.conf
+      - ./logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
     depends_on:
       - elasticsearch
     networks:
