@@ -10,20 +10,13 @@ jobs:
   set-deployment-flag:
     runs-on: ubuntu-latest
     steps:
-      - name: Set Deployment Flag for Backend
+      - name: Set Deployment Flag
+        id: set-flag
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
             echo "deploy_backend=true" >> $GITHUB_ENV
           else
             echo "deploy_backend=false" >> $GITHUB_ENV
-          fi
-
-      - name: Set Deployment Flag for Frontend
-        run: |
-          if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
-            echo "deploy_frontend=true" >> $GITHUB_ENV
-          else
-            echo "deploy_frontend=false" >> $GITHUB_ENV
           fi
 
   # Job for deploy backend
@@ -122,18 +115,9 @@ jobs:
 
     # Job on build APK for frontend
   build-apk:
-    needs: set-deployment-flag
     runs-on: ubuntu-latest
 
     steps:
-      # Conditional step to skip the job if the flag is false
-      - name: Check if frontend build is enabled
-        run: |
-          if [[ "${{ env.deploy_frontend }}" != "true" ]]; then
-            echo "Frontend build is disabled. Skipping..."
-            exit 0
-          fi
-
       - name: Checkout code
         uses: actions/checkout@v3
 

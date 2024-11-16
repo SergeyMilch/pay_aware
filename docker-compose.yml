@@ -15,6 +15,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    mem_reservation: 256m
 
   redis:
     image: redis:7-alpine
@@ -29,6 +31,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 256m
+    mem_reservation: 128m
 
   zookeeper:
     image: bitnami/zookeeper:latest
@@ -59,6 +63,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    mem_reservation: 256m
 
   kafka:
     image: bitnami/kafka:latest
@@ -72,7 +78,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: ${KAFKA_ADVERTISED_LISTENERS}
       KAFKA_LISTENERS: ${KAFKA_LISTENERS}
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms512M -Xmx512M"
+      KAFKA_JVM_PERFORMANCE_OPTS: "-Xms256M -Xmx512M"
     depends_on:
       - zookeeper
     networks:
@@ -82,6 +88,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 1g
+    mem_reservation: 512m
 
   elasticsearch:
     image: bitnami/elasticsearch:8.2.0
@@ -93,6 +101,8 @@ services:
       - es_data:/bitnami/elasticsearch/data
     networks:
       - pay_aware_network
+    mem_limit: 1g
+    mem_reservation: 512m
 
   kibana:
     image: bitnami/kibana:8.2.0
@@ -101,6 +111,8 @@ services:
       - elasticsearch
     networks:
       - pay_aware_network
+    mem_limit: 512m
+    mem_reservation: 256m
 
   logstash:
     image: bitnami/logstash:8.2.0
@@ -111,6 +123,8 @@ services:
       - elasticsearch
     networks:
       - pay_aware_network
+    mem_limit: 1g
+    mem_reservation: 512m
 
   app:
     image: ${DOCKER_USERNAME}/pay_aware_app:latest
@@ -144,6 +158,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    mem_reservation: 256m
 
   # frontend:
   #   build:
@@ -176,6 +192,8 @@ services:
       - app
     networks:
       - pay_aware_network
+    mem_limit: 256m
+    mem_reservation: 128m
 
 networks:
   pay_aware_network:
