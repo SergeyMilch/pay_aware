@@ -17,14 +17,15 @@ jobs:
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
             echo "deploy_backend=true" >> $GITHUB_ENV
+            echo "::set-output name=deploy_backend::true"
           else
             echo "deploy_backend=false" >> $GITHUB_ENV
+            echo "::set-output name=deploy_backend::false"
           fi
 
   # Job for deploy backend
   deploy-backend:
-    needs: set-deployment-flag
-    if: env.deploy_backend == 'true'
+    if: ${{ needs.set-deployment-flag.outputs.deploy_backend == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
