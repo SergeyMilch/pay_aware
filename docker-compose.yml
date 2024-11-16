@@ -38,7 +38,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
       ZOO_SERVER_USERS: ${ZOO_SERVER_USERS}
       ZOO_SERVER_PASSWORDS: ${ZOO_SERVER_PASSWORDS}
-      ALLOW_ANONYMOUS_LOGIN: "no"
+      ZOO_ENABLE_AUTH: "yes" # Включаем авторизацию
+      ALLOW_ANONYMOUS_LOGIN: "no" # Запрещаем анонимный доступ
     networks:
       - pay_aware_network
     healthcheck:
