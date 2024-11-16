@@ -24,7 +24,7 @@ jobs:
   # Job for deploy backend
   deploy-backend:
     needs: set-deployment-flag
-    if: ${{ needs.set-deployment-flag.outputs.deploy_backend == 'true' }}
+    if: env.deploy_backend == 'true'
     runs-on: ubuntu-latest
 
     steps:
