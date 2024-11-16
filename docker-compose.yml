@@ -39,7 +39,8 @@ services:
     container_name: pay_aware_zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_TICK_TIME: 4000
+      ZOOKEEPER_SESSION_TIMEOUT: 60000
       ZOO_SERVER_USERS: ${ZOO_SERVER_USERS}
       ZOO_SERVER_PASSWORDS: ${ZOO_SERVER_PASSWORDS}
       ZOO_ENABLE_AUTH: "no"

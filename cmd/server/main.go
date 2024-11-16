@@ -90,12 +90,12 @@ func main() {
 		// authorized.GET("/subscriptions/total-cost", handlers.GetTotalCost)   <-- расчет общей стоимости реализован на фронтенде
 	}
 
-	// Добавляем health-check эндпоинт
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
-	})
+	// // Добавляем health-check эндпоинт
+	// r.GET("/health", func(c *gin.Context) {
+	// 	c.JSON(200, gin.H{
+	// 		"status": "ok",
+	// 	})
+	// })
 
 	// Запускаем сервер
 	logger.Info("Starting server on port 8000")
