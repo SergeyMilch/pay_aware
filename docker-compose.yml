@@ -63,8 +63,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 1g
-    mem_reservation: 512m
+    mem_limit: 2g
+    mem_reservation: 1g
 
   kafka:
     image: bitnami/kafka:latest
@@ -88,8 +88,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 2g
-    mem_reservation: 1g
+    mem_limit: 3g
+    mem_reservation: 2g
 
   elasticsearch:
     image: bitnami/elasticsearch:8.2.0
