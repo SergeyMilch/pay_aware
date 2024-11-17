@@ -98,7 +98,7 @@ func main() {
 	// 	})
 	// })
 
-	// Добавляем маршрут для обработки OPTIONS запросов вручную
+	// Добавляем маршрут для обработки OPTIONS запросов (доп. вручную)
     r.OPTIONS("/*path", func(c *gin.Context) {
         c.JSON(200, gin.H{"status": "OK"})
     })
