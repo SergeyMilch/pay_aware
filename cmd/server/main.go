@@ -63,7 +63,7 @@ func main() {
 	// Добавляем CORS middleware
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{os.Getenv("ADDR_SERVER")}, // Ограничение списка разрешенных доменов
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
