@@ -65,6 +65,7 @@ func main() {
 		AllowOrigins: []string{os.Getenv("ADDR_SERVER")}, // Ограничение списка разрешенных доменов
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders: []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
 
@@ -96,6 +97,11 @@ func main() {
 	// 		"status": "ok",
 	// 	})
 	// })
+
+	// Добавляем маршрут для обработки OPTIONS запросов вручную
+    r.OPTIONS("/*path", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "OK"})
+    })
 
 	// Запускаем сервер
 	logger.Info("Starting server on port 8000")
