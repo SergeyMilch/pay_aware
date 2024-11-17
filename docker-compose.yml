@@ -188,7 +188,7 @@ services:
     container_name: pay_aware_nginx
     ports:
       - "444:444" # HTTPS
-      - "8080:80" # HTTP для редиректа на HTTPS
+      - "8081:80" # HTTP для редиректа на HTTPS
     volumes:
       - /etc/ssl/private/pay_aware:/etc/ssl/private/pay_aware:ro # Папка с сертификатами
       - /var/www/pay_aware/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro

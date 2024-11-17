@@ -152,7 +152,7 @@ func SendPushNotification(deviceToken, message string) error {
 	}
 
 	// Log на уровне отладки, чтобы не раскрывать содержимое сообщений в производственных logs
-	logger.Info("Push notification sent successfully", "deviceToken", deviceToken)
+	logger.Info("Push notification sent successfully")
 	logger.Debug("Push notification sent with content", "deviceToken", deviceToken, "message", message)
 	return nil
 }
