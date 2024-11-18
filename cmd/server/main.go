@@ -89,6 +89,11 @@ func main() {
 		authorized.PUT("/users/device-token", handlers.UpdateDeviceToken)
 		// При больших нагрузках на клиент, можно будет перейти на серверный подход
 		// authorized.GET("/subscriptions/total-cost", handlers.GetTotalCost)   <-- расчет общей стоимости реализован на фронтенде
+
+		// Обработка OPTIONS запросов для защищенных маршрутов
+		authorized.OPTIONS("/*path", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "OK"})
+		})
 	}
 
 	// // Добавляем health-check эндпоинт
@@ -97,11 +102,6 @@ func main() {
 	// 		"status": "ok",
 	// 	})
 	// })
-
-	// Обработка OPTIONS запросов для защищенных маршрутов
-    authorized.OPTIONS("/*path", func(c *gin.Context) {
-        c.JSON(200, gin.H{"status": "OK"})
-    })
 
     // Обработка OPTIONS запросов для незащищенных маршрутов
     r.OPTIONS("/*path", func(c *gin.Context) {
