@@ -44,7 +44,7 @@ func main() {
 	producer, err := kafka.InitKafka(kafkaConfig)
 	if err != nil {
 		logger.Error("Failed to initialize Kafka producer", "error", err)
-		return // Завершаем работу программы, если Kafka не инициализирована
+		return // Завершаем работу программы, если Kafka не инициализирован
 	}
 	defer producer.Close() // Закрываем продюсер при завершении работы
 	logger.Info("Kafka producer successfully initialized")
