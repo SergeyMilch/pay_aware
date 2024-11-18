@@ -98,7 +98,12 @@ func main() {
 	// 	})
 	// })
 
-	// Добавляем маршрут для обработки OPTIONS запросов (доп. вручную)
+	// Обработка OPTIONS запросов для защищенных маршрутов
+    authorized.OPTIONS("/*path", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "OK"})
+    })
+
+    // Обработка OPTIONS запросов для незащищенных маршрутов
     r.OPTIONS("/*path", func(c *gin.Context) {
         c.JSON(200, gin.H{"status": "OK"})
     })
