@@ -69,6 +69,16 @@ func main() {
 		AllowCredentials: true,
 	}))
 
+	// Middleware для обработки OPTIONS запросов
+    r.Use(func(c *gin.Context) {
+        if c.Request.Method == "OPTIONS" {
+            c.JSON(200, gin.H{"status": "OK"})
+            c.Abort()
+            return
+        }
+        c.Next()
+    })
+
 	logger.Info("Gin router initialized")
 
 	// Публичные маршруты
@@ -89,11 +99,6 @@ func main() {
 		authorized.PUT("/users/device-token", handlers.UpdateDeviceToken)
 		// При больших нагрузках на клиент, можно будет перейти на серверный подход
 		// authorized.GET("/subscriptions/total-cost", handlers.GetTotalCost)   <-- расчет общей стоимости реализован на фронтенде
-
-		// Обработка OPTIONS запросов для защищенных маршрутов
-		authorized.OPTIONS("/*path", func(c *gin.Context) {
-			c.JSON(200, gin.H{"status": "OK"})
-		})
 	}
 
 	// // Добавляем health-check эндпоинт
@@ -102,11 +107,6 @@ func main() {
 	// 		"status": "ok",
 	// 	})
 	// })
-
-    // Обработка OPTIONS запросов для незащищенных маршрутов
-    r.OPTIONS("/*path", func(c *gin.Context) {
-        c.JSON(200, gin.H{"status": "OK"})
-    })
 
 	// Запускаем сервер
 	logger.Info("Starting server on port 8000")
