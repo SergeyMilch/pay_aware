@@ -87,7 +87,15 @@ func main() {
 
 	// Защищенные маршруты
 	authorized := r.Group("/")
-	authorized.Use(middleware.AuthorizeJWT(cfg.JWTSecret))
+	authorized.Use(func(c *gin.Context) {
+        // Пропускаем авторизацию для OPTIONS запросов
+        if c.Request.Method == "OPTIONS" {
+            c.Next()
+            return
+        }
+        middleware.AuthorizeJWT(cfg.JWTSecret)(c)
+    })
+	
 	{
 		authorized.GET("/users", handlers.GetUsers)
 		authorized.GET("/users/:id", handlers.GetUserByID)
