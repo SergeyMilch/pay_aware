@@ -61,23 +61,16 @@ func main() {
 	r := gin.Default()
 
 	// Добавляем CORS middleware
-	r.Use(cors.New(cors.Config{
+	corsConfig := cors.Config{
 		AllowOrigins: []string{os.Getenv("ADDR_SERVER")}, // Ограничение списка разрешенных доменов
 		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders: []string{"Content-Length"},
 		AllowCredentials: true,
-	}))
+	}
 
-	// Middleware для обработки OPTIONS запросов
-    r.Use(func(c *gin.Context) {
-        if c.Request.Method == "OPTIONS" {
-            c.JSON(200, gin.H{"status": "OK"})
-            c.Abort()
-            return
-        }
-        c.Next()
-    })
+	// Добавляем CORS middleware глобально
+    r.Use(cors.New(corsConfig))
 
 	logger.Info("Gin router initialized")
 
@@ -87,15 +80,9 @@ func main() {
 
 	// Защищенные маршруты
 	authorized := r.Group("/")
-	authorized.Use(func(c *gin.Context) {
-        // Пропускаем авторизацию для OPTIONS запросов
-        if c.Request.Method == "OPTIONS" {
-            c.Next()
-            return
-        }
-        middleware.AuthorizeJWT(cfg.JWTSecret)(c)
-    })
-	
+	authorized.Use(cors.New(corsConfig)) // Применение CORS до JWT авторизации
+    authorized.Use(middleware.AuthorizeJWT(cfg.JWTSecret))
+
 	{
 		authorized.GET("/users", handlers.GetUsers)
 		authorized.GET("/users/:id", handlers.GetUserByID)
