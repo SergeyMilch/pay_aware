@@ -16,9 +16,9 @@ jobs:
         id: set-flag-back
         run: |
           if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
-            echo "::set-output name=deploy_backend::true"
+            echo "deploy_backend=true" >> $GITHUB_ENV
           else
-            echo "::set-output name=deploy_backend::false"
+            echo "deploy_backend=false" >> $GITHUB_ENV
           fi
 
   set-deployment-flag-front:
@@ -30,16 +30,16 @@ jobs:
         id: set-flag-front
         run: |
           if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
-            echo "::set-output name=deploy_frontend::true"
+            echo "deploy_frontend=true" >> $GITHUB_ENV
           else
-            echo "::set-output name=deploy_frontend::false"
+            echo "deploy_frontend=false" >> $GITHUB_ENV
           fi
 
   # Job for deploy backend
   deploy-backend:
     needs: set-deployment-flag-back
     runs-on: ubuntu-latest
-    if: needs.set-deployment-flag-back.outputs.deploy_backend == 'true'
+    if: env.deploy_backend == 'true'
 
     steps:
       - name: Checkout code
@@ -128,7 +128,7 @@ jobs:
   build-apk:
     needs: set-deployment-flag-front
     runs-on: ubuntu-latest
-    if: needs.set-deployment-flag-front.outputs.deploy_frontend == 'true'
+    if: env.deploy_frontend == 'true'
 
     steps:
       - name: Checkout code
