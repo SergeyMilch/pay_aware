@@ -62,11 +62,10 @@ func main() {
 
 	// Добавляем CORS middleware
 	corsConfig := cors.Config{
-		AllowOrigins: []string{os.Getenv("ADDR_SERVER")}, // Ограничение списка разрешенных доменов
-		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders: []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowOrigins:		[]string{os.Getenv("ADDR_SERVER")}, // Ограничение списка разрешенных доменов
+		AllowMethods: 		[]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: 		[]string{"Authorization", "Content-Type"},
+		AllowCredentials: 	true,
 	}
 
 	// Добавляем CORS middleware глобально
@@ -80,7 +79,7 @@ func main() {
 
 	// Защищенные маршруты
 	authorized := r.Group("/")
-	authorized.Use(cors.New(corsConfig)) // Применение CORS до JWT авторизации
+	authorized.Use(cors.New(corsConfig)) // Применение CORS до JWT авторизации для поддержки OPTIONS запросов
     authorized.Use(middleware.AuthorizeJWT(cfg.JWTSecret))
 
 	{

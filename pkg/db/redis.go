@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
@@ -15,9 +16,8 @@ import (
 var RedisClient *redis.Client
 var ctx = context.Background()
 
-// InitRedis инициализирует подключение к Redis
+// InitRedis инициализирует подключение к Redis с поддержкой TLS и пароля
 func InitRedis() {
-
     addr := os.Getenv("REDIS_ADDR")
     if addr == "" {
         log.Fatal("Missing REDIS_ADDR configuration")
@@ -29,14 +29,23 @@ func InitRedis() {
         fmt.Sscanf(dbStr, "%d", &db)
     }
 
+    useTLS := os.Getenv("REDIS_USE_TLS")
+    var tlsConfig *tls.Config
+    if useTLS == "true" {
+        tlsConfig = &tls.Config{
+            InsecureSkipVerify: false, // Установить в false в production с настоящим сертификатом
+        }
+    }
+
     retryAttempts := 3
     sleepDuration := 5 * time.Second
 
     err := utils.Retry(retryAttempts, sleepDuration, func() error {
         RedisClient = redis.NewClient(&redis.Options{
-            Addr:     addr,
-            Password: password,
-            DB:       db,
+            Addr:      addr,
+            Password:  password,
+            DB:        db,
+            TLSConfig: tlsConfig,
         })
 
         // Устанавливаем контекст с тайм-аутом для команды Ping
@@ -55,7 +64,6 @@ func InitRedis() {
         logger.Error("Failed to connect to Redis after retries", "error", err)
         log.Fatalf("Failed to connect to Redis: %v", err)
     }
-
 }
 
 // CloseRedis закрывает клиент Redis

@@ -28,7 +28,6 @@ func InitKafka(cfg config.KafkaConfig) (*KafkaProducer, error) {
 	retryTimeout := 60 * time.Second
 
 	logger.Info("Waiting for Kafka readiness before connecting...")
-	logger.Debug("Waiting for Kafka readiness before connecting...", "broker", kafkaBroker)
 	if !utils.WaitForKafkaReady(kafkaBroker, retryTimeout) {
 		logger.Error("Kafka is not ready after waiting; aborting connection attempts")
 		return nil, fmt.Errorf("kafka not ready")
@@ -42,10 +41,22 @@ func InitKafka(cfg config.KafkaConfig) (*KafkaProducer, error) {
 		producerConfig := sarama.NewConfig()
 		producerConfig.Producer.Return.Successes = true
 
+		// Настройка SSL, если флаг `UseSSL` установлен в true
+		if cfg.UseSSL {
+			producerConfig.Net.TLS.Enable = true
+			tlsConfig, err := utils.CreateTLSConfiguration(cfg.Truststore, cfg.TruststorePassword)
+			if err != nil {
+				logger.Error("Failed to create TLS configuration", "error", err)
+				return err
+			}
+			producerConfig.Net.TLS.Config = tlsConfig
+		}
+
+		// Создание нового Kafka producer
 		var err error
 		producer, err = sarama.NewSyncProducer([]string{kafkaBroker}, producerConfig)
 		if err != nil {
-			logger.Debug("Failed to connect to Kafka, retrying...", "error", err)
+			logger.Warn("Failed to connect to Kafka, retrying...", "error", err)
 			return err
 		}
 		return nil
@@ -56,7 +67,7 @@ func InitKafka(cfg config.KafkaConfig) (*KafkaProducer, error) {
 		return nil, err
 	}
 
-	logger.Debug("Kafka producer successfully initialized", "broker", kafkaBroker, "topic", cfg.Topic)
+	logger.Info("Kafka producer successfully initialized", "broker", kafkaBroker, "topic", cfg.Topic)
 	return &KafkaProducer{producer: producer, topic: cfg.Topic}, nil
 }
 

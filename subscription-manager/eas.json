@@ -4,7 +4,7 @@
       "android": {
         "buildType": "apk",
         "credentialsSource": "remote",
-        "image": "ubuntu-22.04-jdk-17-ndk-r21e",
+        "image": "ubuntu-22.04-jdk-17-ndk-r27с",
         "gradleCommand": ":app:assembleRelease"
       }
     }

@@ -3,6 +3,10 @@
     "name": "subscription-manager",
     "slug": "subscription-manager",
     "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -12,7 +16,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pushkin85.mil.subscriptionmanager"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,6 +33,9 @@
       "eas": {
         "projectId": "6e51137e-084d-4364-a90c-14f366df944e"
       }
-    }
+    },
+    "plugins": [
+      "expo-asset"
+    ]
   }
 }

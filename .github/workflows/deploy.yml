@@ -1,190 +1,199 @@
 name: Deploy to Server and Build APK
 
 on:
-  push:
-    branches:
-      - main
+push:
+  branches:
+    - main
 
 jobs:
-  # Using a flag to control the execution of a job
-  set-deployment-flag:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set Deployment Flag
-        id: set-flag
-        run: |
-          if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
-            echo "deploy_backend=true" >> $GITHUB_ENV
-          else
-            echo "deploy_backend=false" >> $GITHUB_ENV
-          fi
+# Using a flag to control the execution of a job
+set-deployment-flag-back:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Set Deployment Flag Back
+      id: set-flag-back
+      run: |
+        if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
+          echo "deploy_backend=true" >> $GITHUB_ENV
+        else
+          echo "deploy_backend=false" >> $GITHUB_ENV
+        fi
 
-  # Job for deploy backend
-  deploy-backend:
-    needs: set-deployment-flag
-    runs-on: ubuntu-latest
+set-deployment-flag-front:
+  runs-on: ubuntu-latest
+  steps:
+    - name: Set Deployment Flag Front
+      id: set-flag-front
+      run: |
+        if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
+          echo "deploy_frontend=true" >> $GITHUB_ENV
+        else
+          echo "deploy_frontend=false" >> $GITHUB_ENV
+        fi
 
-    steps:
-      # Conditional step to skip the job if the flag is false
-      - name: Check if backend deployment is enabled
-        run: |
-          if [[ "${{ env.deploy_backend }}" != "true" ]]; then
-            echo "Backend deployment is disabled. Skipping..."
-            exit 0
-          fi
+# Job for deploy backend
+deploy-backend:
+  needs: set-deployment-flag-back
+  runs-on: ubuntu-latest
 
-      - name: Checkout code
-        uses: actions/checkout@v3
+  steps:
+    # Conditional step to skip the job if the flag is false
+    - name: Check if backend deployment is enabled
+      run: |
+        if [[ "${{ env.deploy_backend }}" != "true" ]]; then
+          echo "Backend deployment is disabled. Skipping..."
+          exit 0
+        fi
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Build and Push Docker Image
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest .
-          docker push ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
 
-      - name: Set up SSH for server access
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo -e "Host spaceweb\n  HostName ${{ secrets.SERVER_IP }}\n  User ${{ secrets.SSH_USER }}\n  IdentityFile ~/.ssh/id_ed25519\n  IdentitiesOnly yes" > ~/.ssh/config
-          chmod 600 ~/.ssh/config
-          ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest
 
-      # Step  for debugging
-      - name: Test SSH connection
-        run: |
-          ssh -v -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo Connected successfully"
+    - name: Set up SSH for server access
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        echo -e "Host spaceweb\n  HostName ${{ secrets.SERVER_IP }}\n  User ${{ secrets.SSH_USER }}\n  IdentityFile ~/.ssh/id_ed25519\n  IdentitiesOnly yes" > ~/.ssh/config
+        chmod 600 ~/.ssh/config
+        ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
 
-      - name: Debug SSH_USER and SERVER_IP
-        run: |
-          echo "SSH_USER: ${{ secrets.SSH_USER }}"
-          echo "SERVER_IP: ${{ secrets.SERVER_IP }}"
+    # Step  for debugging
+    - name: Test SSH connection
+      run: |
+        ssh -v -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo Connected successfully"
 
-      - name: Validate SSH_USER and SERVER_IP
-        run: |
-          if [ -z "${{ secrets.SSH_USER }}" ] || [ -z "${{ secrets.SERVER_IP }}" ]; then
-            echo "Error: SSH_USER or SERVER_IP is not set"
-            exit 1
-          fi
+    - name: Copy Logstash Configuration to server
+      run: |
+        rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" logstash.conf "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
 
-      - name: Copy Logstash Configuration to server
-        run: |
-          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" logstash.conf "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
+    - name: Copy Docker Compose to server
+      run: |
+        echo "Connecting to: ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}"
+        rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
 
-      - name: Copy Docker Compose to server
-        run: |
-          echo "Connecting to: ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}"
-          rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
+    - name: Set up backend environment variables
+      run: |
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" << 'EOF'
+        cat > /var/www/pay_aware/.env << EOL
+        ENV=${{ secrets.BACKEND_ENV }}
+        ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}
+        DB_HOST=${{ secrets.BACKEND_DB_HOST }}
+        DB_PORT=${{ secrets.BACKEND_DB_PORT }}
+        DB_USER=${{ secrets.BACKEND_DB_USER }}
+        DB_PASSWORD=${{ secrets.BACKEND_DB_PASSWORD }}
+        DB_NAME=${{ secrets.BACKEND_DB_NAME }}
+        DB_SSL_MODE=${{ secrets.BACKEND_DB_SSL_MODE }}
+        JWT_SECRET=${{ secrets.BACKEND_JWT_SECRET }}
+        REDIS_ADDR=${{ secrets.BACKEND_REDIS_ADDR }}
+        REDIS_PASSWORD=${{ secrets.BACKEND_REDIS_PASSWORD }}
+        REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}
+        REDIS_TLS_ENABLED=${{ secrets.BACKEND_REDIS_TLS_ENABLED }}
+        ZOO_SERVER_USERS=${{ secrets.BACKEND_ZOO_SERVER_USERS }}
+        ZOO_SERVER_PASSWORDS=${{ secrets.BACKEND_ZOO_SERVER_PASSWORDS }}
+        ZOO_KEYSTORE_PASSWORD=${{ secrets.BACKEND_ZOO_KEYSTORE_PASSWORD }}
+        ZOO_TRUSTSTORE_PASSWORD=${{ secrets.BACKEND_ZOO_TRUSTSTORE_PASSWORD }}
+        KAFKA_ZOOKEEPER_USER=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_USER }}
+        KAFKA_ZOOKEEPER_PASSWORD=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_PASSWORD }}
+        KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}
+        KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}
+        KAFKA_LISTENERS=${{ secrets.BACKEND_KAFKA_LISTENERS }}
+        KAFKA_ADVERTISED_LISTENERS=${{ secrets.BACKEND_KAFKA_ADVERTISED_LISTENERS }}
+        KAFKA_USE_SSL=${{ secrets.BACKEND_KAFKA_USE_SSL }}
+        KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD=${{ secrets.BACKEND_KAFKA_CFG_SSL_TRUSTSTORE_PASSWORD }}
+        LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}
+        ELASTIC_USER=${{ secrets.BACKEND_ELASTIC_USER }}
+        ELASTIC_PASSWORD=${{ secrets.BACKEND_ELASTIC_PASSWORD }}
+        EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}
+        SSL_CERT_PATH=${{ secrets.BACKEND_SSL_CERT_PATH }}
+        SSL_KEY_PATH=${{ secrets.BACKEND_SSL_KEY_PATH }}
+        DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+        EOL
+        EOF
 
-      - name: Set up backend environment variables
-        run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ENV=${{ secrets.BACKEND_ENV }}\" > /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DB_HOST=${{ secrets.BACKEND_DB_HOST }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DB_PORT=${{ secrets.BACKEND_DB_PORT }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DB_USER=${{ secrets.BACKEND_DB_USER }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DB_PASSWORD=${{ secrets.BACKEND_DB_PASSWORD }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DB_NAME=${{ secrets.BACKEND_DB_NAME }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"JWT_SECRET=${{ secrets.BACKEND_JWT_SECRET }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"REDIS_ADDR=${{ secrets.BACKEND_REDIS_ADDR }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"REDIS_PASSWORD=${{ secrets.BACKEND_REDIS_PASSWORD }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"REDIS_DB=${{ secrets.BACKEND_REDIS_DB }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_BROKER=${{ secrets.BACKEND_KAFKA_BROKER }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_TOPIC=${{ secrets.BACKEND_KAFKA_TOPIC }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_LISTENERS=${{ secrets.BACKEND_KAFKA_LISTENERS }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_ADVERTISED_LISTENERS=${{ secrets.BACKEND_KAFKA_ADVERTISED_LISTENERS }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"LOGSTASH_ADDR=${{ secrets.BACKEND_LOGSTASH_ADDR }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ADDR_SERVER=${{ secrets.BACKEND_ADDR_SERVER }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ZOO_SERVER_USERS=${{ secrets.BACKEND_ZOO_SERVER_USERS }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"ZOO_SERVER_PASSWORDS=${{ secrets.BACKEND_ZOO_SERVER_PASSWORDS }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_ZOOKEEPER_USER=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_USER }}\" >> /var/www/pay_aware/.env"
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo \"KAFKA_ZOOKEEPER_PASSWORD=${{ secrets.BACKEND_KAFKA_ZOOKEEPER_PASSWORD }}\" >> /var/www/pay_aware/.env"
+    - name: Deploy with Docker Compose
+      run: |
+        ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d && sleep 10 && docker-compose restart nginx"
 
-      - name: Deploy with Docker Compose
-        run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d && sleep 10 && docker-compose restart nginx"
+# Job on build APK for frontend
+build-apk:
+  needs: set-deployment-flag-front
+  runs-on: ubuntu-latest
 
-    # Job on build APK for frontend
-  build-apk:
-    runs-on: ubuntu-latest
+  steps:
+    # Conditional step to skip the job if the flag is false
+    - name: Check if backend deployment is enabled
+      run: |
+        if [[ "${{ env.deploy_frontend }}" != "true" ]]; then
+          echo "Backend deployment is disabled. Skipping..."
+          exit 0
+        fi
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "18"
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: "18"
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v2
-        with:
-          distribution: "temurin"
-          java-version: "17"
+    - name: Set up Java 17
+      uses: actions/setup-java@v2
+      with:
+        distribution: "temurin"
+        java-version: "17"
 
-      - name: Install dependencies
-        working-directory: ./subscription-manager
-        run: |
-          npm install --legacy-peer-deps
-          npm install -g eas-cli
+    - name: Install dependencies
+      working-directory: ./subscription-manager
+      run: |
+        npm install --legacy-peer-deps
+        npm install -g eas-cli
 
-      # Uncomment if dependencies like Expo core are needed
-      # - name: Install Expo Dependencies
-      #   working-directory: ./subscription-manager
-      #   run: |
-      #     npx expo install expo-modules-core expo-application expo-constants
-      #     npx expo install --check
+    - name: Set up frontend environment variables
+      run: |
+        echo "ENVIRONMENT=${{ secrets.FRONTEND_ENVIRONMENT }}" > ./subscription-manager/.env
+        echo "API_URL=${{ secrets.FRONTEND_API_URL }}" >> ./subscription-manager/.env
 
-      - name: Set up frontend environment variables
-        run: |
-          echo "ENVIRONMENT=${{ secrets.FRONTEND_ENVIRONMENT }}" > ./subscription-manager/.env
-          echo "API_URL=${{ secrets.FRONTEND_API_URL }}" >> ./subscription-manager/.env
+    - name: Build APK with EAS
+      working-directory: ./subscription-manager
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      run: |
+        eas build -p android --profile production --non-interactive
 
-      - name: Build APK with EAS
-        working-directory: ./subscription-manager
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas build -p android --profile production --non-interactive
+    - name: Debug APK URL Response
+      working-directory: ./subscription-manager
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      run: |
+        eas build:list --status=finished --limit=1 --json
 
-      - name: Debug APK URL Response
-        working-directory: ./subscription-manager
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          eas build:list --status=finished --limit=1 --json
+    - name: Get APK URL and Download APK
+      working-directory: ./subscription-manager
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      run: |
+        APK_URL=$(eas build:list --status=finished --limit=1 --json | jq -r '.[] | select(.artifacts != null) | .artifacts.buildUrl')
+        if [ -z "$APK_URL" ]; then
+          echo "Error: Unable to find APK URL."
+          exit 1
+        fi
+        curl -o app-release.apk "$APK_URL"
 
-      - name: Get APK URL and Download APK
-        working-directory: ./subscription-manager
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: |
-          APK_URL=$(eas build:list --status=finished --limit=1 --json | jq -r '.[] | select(.artifacts != null) | .artifacts.buildUrl')
-          if [ -z "$APK_URL" ]; then
-            echo "Error: Unable to find APK URL."
-            exit 1
-          fi
-          curl -o app-release.apk "$APK_URL"
-
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-release
-          path: ./subscription-manager/app-release.apk
-
-      # - name: Store APK in Google Drive (optional)
-      #   uses: gdrive/drive-upload-action@v1
-      #   with:
-      #     credentials: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
-      #     localFilePath: ./subscription-manager/app-release.apk
-      #     driveFolderName: "APK_Builds"
+    - name: Upload APK as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-release
+        path: ./subscription-manager/app-release.apk

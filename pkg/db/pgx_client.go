@@ -16,12 +16,13 @@ var PgxPool *pgxpool.Pool
 // InitPgx инициализирует подключение к базе данных PostgreSQL с использованием pgx
 func InitPgx(cfg *config.Config) {
     dsn := fmt.Sprintf(
-        "postgres://%s:%s@%s:%s/%s",
+        "postgres://%s:%s@%s:%s/%s?sslmode=%s",
         cfg.DBUser,
         cfg.DBPassword,
         cfg.DBHost,
         cfg.DBPort,
         cfg.DBName,
+        cfg.DBSSLMode,
     )
 
     var err error

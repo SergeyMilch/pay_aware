@@ -19,12 +19,13 @@ var GormDB *gorm.DB
 // InitPostgres инициализирует подключение к базе данных PostgreSQL с использованием GORM
 func InitPostgres(cfg *config.Config) {
     dsn := fmt.Sprintf(
-        "host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+        "host=%s user=%s password=%s dbname=%s port=%s sslmode=%s",
         cfg.DBHost,
         cfg.DBUser,
         cfg.DBPassword,
         cfg.DBName,
         cfg.DBPort,
+        cfg.DBSSLMode,
     )
 
     var err error

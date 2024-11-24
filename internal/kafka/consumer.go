@@ -19,7 +19,20 @@ func StartKafkaConsumer(cfg config.KafkaConfig) {
 
 	err := utils.Retry(retryAttempts, sleepDuration, func() error {
 		consumerGroupHandler := &ConsumerGroupHandler{}
-		consumer, err := sarama.NewConsumerGroup([]string{cfg.Broker}, "subscription_consumer_group", sarama.NewConfig())
+		consumerConfig := sarama.NewConfig()
+
+		// Настройка SSL, если флаг `UseSSL` установлен в true
+		if cfg.UseSSL {
+			consumerConfig.Net.TLS.Enable = true
+			tlsConfig, err := utils.CreateTLSConfiguration(cfg.Truststore, cfg.TruststorePassword)
+			if err != nil {
+				logger.Error("Failed to create TLS configuration", "error", err)
+				return err
+			}
+			consumerConfig.Net.TLS.Config = tlsConfig
+		}
+
+		consumer, err := sarama.NewConsumerGroup([]string{cfg.Broker}, "subscription_consumer_group", consumerConfig)
 		if err != nil {
 			logger.Error("Error creating Kafka consumer group", "error", err)
 			return err

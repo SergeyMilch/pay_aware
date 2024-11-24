@@ -1,6 +1,4 @@
 .env
 *.tar.gz
 *.tar
-app
 pay_aware
-main
