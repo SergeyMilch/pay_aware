@@ -208,7 +208,7 @@ services:
     volumes:
       - ${SSL_CERT_PATH}:/certs/cert.pem:ro # Путь к SSL сертификатам
       - ${SSL_KEY_PATH}:/certs/key.pem:ro # Путь к SSL ключу
-      - /var/www/pay_aware/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/www/pay_aware/config/nginx.conf:/etc/nginx/conf.d/default.conf:rw
     depends_on:
       - app
     networks:
