@@ -5,7 +5,7 @@ on:
     branches:
       - main
 
-  jobs:
+jobs:
   # Using a flag to control the execution of a job
   set-deployment-flag-back:
     runs-on: ubuntu-latest
