@@ -6,27 +6,44 @@ on:
       - main
 
 jobs:
-  # Job for deploying backend
+  # Set deployment flag for backend
   deploy-backend:
     runs-on: ubuntu-latest
-    if: ${{ secrets.DEPLOY_BACKEND == 'true' }}
 
     steps:
+      - name: Set Deployment Flag Back
+        id: set-flag-back
+        run: |
+          if [[ "${{ secrets.DEPLOY_BACKEND }}" == "true" ]]; then
+            echo "deploy_backend=true" >> $GITHUB_ENV
+          else
+            echo "deploy_backend=false" >> $GITHUB_ENV
+          fi
+
+      # Conditional step to skip the job if the flag is false
+      - name: Check if backend deployment is enabled
+        if: env.deploy_backend == 'true'
+        run: echo "Backend deployment is enabled"
+
       - name: Checkout code
+        if: env.deploy_backend == 'true'
         uses: actions/checkout@v3
 
       - name: Log in to Docker Hub
+        if: env.deploy_backend == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_ACCESS_TOKEN }}
 
       - name: Build and Push Docker Image
+        if: env.deploy_backend == 'true'
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/pay_aware_app:latest
 
       - name: Set up SSH for server access
+        if: env.deploy_backend == 'true'
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -37,20 +54,25 @@ jobs:
           chmod 600 ~/.ssh/config
           ssh-keyscan -H "${{ secrets.SERVER_IP }}" >> ~/.ssh/known_hosts
 
+      # Step for debugging
       - name: Test SSH connection
+        if: env.deploy_backend == 'true'
         run: |
           ssh -v -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "echo Connected successfully"
 
       - name: Copy Logstash Configuration to server
+        if: env.deploy_backend == 'true'
         run: |
           rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" logstash.conf "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
 
       - name: Copy Docker Compose to server
+        if: env.deploy_backend == 'true'
         run: |
           echo "Connecting to: ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}"
           rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
 
       - name: Set up backend environment variables
+        if: env.deploy_backend == 'true'
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" << 'EOF'
           cat > /var/www/pay_aware/.env << EOL
@@ -90,41 +112,61 @@ jobs:
           EOF
 
       - name: Deploy with Docker Compose
+        if: env.deploy_backend == 'true'
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}" "cd /var/www/pay_aware && docker-compose pull && docker-compose down && docker-compose up -d && sleep 10 && docker-compose restart nginx"
 
   # Job to build APK for frontend
   build-apk:
     runs-on: ubuntu-latest
-    if: ${{ secrets.DEPLOY_FRONTEND == 'true' }}
 
     steps:
+      - name: Set Deployment Flag Front
+        id: set-flag-front
+        run: |
+          if [[ "${{ secrets.DEPLOY_FRONTEND }}" == "true" ]]; then
+            echo "deploy_frontend=true" >> $GITHUB_ENV
+          else
+            echo "deploy_frontend=false" >> $GITHUB_ENV
+          fi
+
+      # Conditional step to skip the job if the flag is false
+      - name: Check if frontend deployment is enabled
+        if: env.deploy_frontend == 'true'
+        run: echo "Frontend deployment is enabled"
+
       - name: Checkout code
+        if: env.deploy_frontend == 'true'
         uses: actions/checkout@v3
 
       - name: Set up Node.js
+        if: env.deploy_frontend == 'true'
         uses: actions/setup-node@v2
         with:
           node-version: "18"
 
       - name: Set up Java 17
+        if: env.deploy_frontend == 'true'
         uses: actions/setup-java@v2
         with:
           distribution: "temurin"
           java-version: "17"
 
       - name: Install dependencies
+        if: env.deploy_frontend == 'true'
         working-directory: ./subscription-manager
         run: |
           npm install --legacy-peer-deps
           npm install -g eas-cli
 
       - name: Set up frontend environment variables
+        if: env.deploy_frontend == 'true'
         run: |
           echo "ENVIRONMENT=${{ secrets.FRONTEND_ENVIRONMENT }}" > ./subscription-manager/.env
           echo "API_URL=${{ secrets.FRONTEND_API_URL }}" >> ./subscription-manager/.env
 
       - name: Build APK with EAS
+        if: env.deploy_frontend == 'true'
         working-directory: ./subscription-manager
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -132,6 +174,7 @@ jobs:
           eas build -p android --profile production --non-interactive
 
       - name: Debug APK URL Response
+        if: env.deploy_frontend == 'true'
         working-directory: ./subscription-manager
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -139,6 +182,7 @@ jobs:
           eas build:list --status=finished --limit=1 --json
 
       - name: Get APK URL and Download APK
+        if: env.deploy_frontend == 'true'
         working-directory: ./subscription-manager
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -151,6 +195,7 @@ jobs:
           curl -o app-release.apk "$APK_URL"
 
       - name: Upload APK as artifact
+        if: env.deploy_frontend == 'true'
         uses: actions/upload-artifact@v3
         with:
           name: app-release
