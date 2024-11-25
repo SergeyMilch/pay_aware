@@ -209,7 +209,7 @@ services:
     container_name: pay_aware_nginx
     ports:
       - "444:444" # HTTPS
-      - "80:80" # HTTP для редиректа на HTTPS
+      - "8081:80" # HTTP для редиректа на HTTPS
     volumes:
       - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
       - ${SSL_KEY_PATH}:/certs/privkey.pem:ro # Путь к SSL ключу
