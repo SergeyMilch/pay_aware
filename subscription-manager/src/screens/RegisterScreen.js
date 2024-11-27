@@ -11,7 +11,7 @@ import {
 import { registerUser } from "../api/api";
 import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
-import logger from "../utils/logger"; // Импорт логгера
+import logger from "../utils/logger";
 
 const RegisterScreen = ({ navigation }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
