@@ -19,8 +19,8 @@ RUN go build -o pay_aware ./cmd/server/main.go
 # Финальный контейнер для запуска
 FROM debian:stable-slim
 
-# Устанавливаем нужные зависимости
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Устанавливаем нужные зависимости, включая wget
+RUN apt-get update && apt-get install -y ca-certificates wget && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Устанавливаем рабочую директорию
 WORKDIR /root/

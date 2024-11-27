@@ -130,7 +130,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
           <TextInput
             style={styles.input}
             value={nextPaymentDate}
-            placeholder="Дата следующего платежа (например, 2024-11-15)"
+            placeholder="Дата следующего платежа"
             editable={false}
           />
         </TouchableOpacity>

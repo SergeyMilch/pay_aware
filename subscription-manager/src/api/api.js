@@ -206,11 +206,18 @@ export const deleteSubscription = createApiCall(
   "Ошибка при удалении подписки",
   "delete"
 );
-export const updateDeviceTokenOnServer = createApiCall(
-  "/users/device-token",
-  "Ошибка при обновлении токена устройства",
-  "put"
-);
+export const updateDeviceTokenOnServer = async ({ device_token, user_id }) => {
+  try {
+    const response = await api.put("/users/device-token", {
+      device_token,
+      user_id,
+    });
+    return response.data;
+  } catch (error) {
+    logger.error("Ошибка при обновлении токена устройства:", error);
+    throw error;
+  }
+};
 export const getUsers = createApiCall(
   "/users",
   "Ошибка при получении списка пользователей"
@@ -239,3 +246,23 @@ function createApiCall(endpoint, errorMessage, method = "get") {
     }
   };
 }
+
+// Запрос на восстановление пароля
+export const requestPasswordReset = async (email) => {
+  const response = await fetch(`${API_URL}/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  return response;
+};
+
+// Запрос на сброс пароля
+export const resetPassword = async (token, newPassword) => {
+  const response = await fetch(`${API_URL}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  return response;
+};

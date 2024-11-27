@@ -9,10 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { registerUser } from "../api/api";
-import {
-  registerForPushNotificationsAsync,
-  sendDeviceTokenToServer,
-} from "../utils/notifications";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger"; // Импорт логгера
 
@@ -26,15 +23,24 @@ const RegisterScreen = ({ navigation }) => {
   };
 
   const handleRegister = async () => {
-    if (isLoading) return;
+    if (isLoading) {
+      logger.warn("Регистрация уже выполняется, повторный вызов отменен");
+      return;
+    }
 
+    setIsLoading(true);
+    logger.log("Начало процесса регистрации");
+
+    // Валидация полей
     if (!credentials.email.trim() || !credentials.password.trim()) {
       Alert.alert("Ошибка", "Пожалуйста, заполните все поля.");
+      setIsLoading(false);
       return;
     }
 
     if (!IsValidEmail(credentials.email)) {
       Alert.alert("Ошибка", "Неверный формат email.");
+      setIsLoading(false);
       return;
     }
 
@@ -43,41 +49,48 @@ const RegisterScreen = ({ navigation }) => {
         "Ошибка",
         "Пароль должен содержать как минимум 6 символов, включая заглавные и строчные буквы, цифры и специальные символы."
       );
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-    setError("");
-
     try {
-      const response = await registerUser(credentials, navigation.navigate);
+      // Регистрируем токен устройства перед регистрацией пользователя
+      const deviceToken = await registerForPushNotificationsAsync();
+      if (!deviceToken) {
+        logger.warn("Не удалось получить токен устройства");
+        Alert.alert(
+          "Внимание",
+          "Не удалось получить токен устройства. Попробуйте снова."
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      logger.log("Device Token:", deviceToken);
+
+      // Обновляем данные для регистрации с токеном устройства
+      const updatedCredentials = {
+        ...credentials,
+        device_token: deviceToken,
+      };
+
+      // Регистрируем пользователя вместе с токеном устройства
+      const response = await registerUser(updatedCredentials);
 
       if (response && response.token && response.user_id) {
         logger.log("Пользователь успешно зарегистрирован");
 
-        // Регистрируем и отправляем токен устройства на сервер
-        const deviceToken = await registerForPushNotificationsAsync();
-        if (deviceToken) {
-          try {
-            await sendDeviceTokenToServer(deviceToken);
-            logger.log("Device token обновлен успешно");
-          } catch (err) {
-            logger.error(
-              "Не удалось обновить токен устройства на сервере:",
-              err
-            );
-          }
-        } else {
-          logger.warn("Не удалось получить токен устройства");
-          Alert.alert(
-            "Внимание",
-            "Регистрация успешна, но не удалось получить токен устройства."
-          );
-        }
+        // Сохраняем токен и user_id
+        await AsyncStorage.setItem("authToken", response.token);
+        await AsyncStorage.setItem("userId", response.user_id.toString());
+        setAuthToken(response.token);
 
         navigation.navigate("SubscriptionList");
       } else {
-        logger.error("Некорректный ответ от сервера:", response);
+        logger.error(
+          "Некорректный ответ от сервера при регистрации:",
+          response
+        );
         setError("Ошибка при регистрации. Пожалуйста, попробуйте снова.");
       }
     } catch (error) {
@@ -85,6 +98,7 @@ const RegisterScreen = ({ navigation }) => {
       setError("Ошибка при регистрации. Пожалуйста, попробуйте снова.");
     } finally {
       setIsLoading(false);
+      logger.log("Регистрация завершена");
     }
   };
 
@@ -109,8 +123,14 @@ const RegisterScreen = ({ navigation }) => {
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
-        <TouchableOpacity style={styles.button} onPress={handleRegister}>
-          <Text style={styles.buttonText}>Зарегистрироваться</Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={handleRegister}
+          disabled={isLoading}
+        >
+          <Text style={styles.buttonText}>
+            {isLoading ? "Регистрация..." : "Зарегистрироваться"}
+          </Text>
         </TouchableOpacity>
       )}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}

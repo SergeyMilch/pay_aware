@@ -144,7 +144,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
       />
-      <Text style={styles.label}>Интервал напоминания</Text>
+      <Text style={styles.label}>Напомнить:</Text>
       <View style={styles.buttonGroup}>
         <TouchableOpacity
           style={[

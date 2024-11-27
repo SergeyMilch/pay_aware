@@ -131,7 +131,7 @@ const SubscriptionListScreen = () => {
     <View style={styles.container}>
       <View style={styles.totalCostContainer}>
         <Text style={styles.totalCostText}>
-          Total Cost: ${totalCost.toFixed(2)}
+          Общая стоимость: {totalCost.toFixed(2)} ₽
         </Text>
       </View>
 
@@ -180,13 +180,13 @@ const SubscriptionListScreen = () => {
                     })
                   }
                 >
-                  <Text style={styles.buttonText}>Edit</Text>
+                  <Text style={styles.buttonText}>Редактировать</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.deleteButton]}
                   onPress={() => handleDelete(item.ID)}
                 >
-                  <Text style={styles.buttonText}>Delete</Text>
+                  <Text style={styles.buttonText}>Удалить</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -198,7 +198,7 @@ const SubscriptionListScreen = () => {
         style={styles.addButton}
         onPress={handleAddSubscription}
       >
-        <Text style={styles.addButtonText}>Add Subscription</Text>
+        <Text style={styles.addButtonText}>Добавить подписку</Text>
       </TouchableOpacity>
     </View>
   );

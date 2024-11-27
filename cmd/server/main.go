@@ -76,6 +76,9 @@ func main() {
 	// Публичные маршруты
 	r.POST("/users", handlers.CreateUser)
 	r.POST("/users/login", handlers.LoginUser)
+	r.POST("/forgot-password", handlers.ForgotPassword)
+    r.POST("/reset-password", handlers.ResetPassword)
+	r.GET("/reset-password", handlers.PasswordResetRedirect)
 
 	// Защищенные маршруты
 	authorized := r.Group("/")
@@ -102,6 +105,8 @@ func main() {
 			"status": "ok",
 		})
 	})
+
+	r.GET("/clear-cache", handlers.ClearCache)
 
 	// Запускаем сервер
 	logger.Info("Starting server on port 8000")

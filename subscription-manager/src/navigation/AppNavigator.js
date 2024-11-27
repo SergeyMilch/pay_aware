@@ -7,10 +7,13 @@ import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import SubscriptionListScreen from "../screens/SubscriptionListScreen";
 import CreateSubscriptionScreen from "../screens/CreateSubscriptionScreen";
+import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
+import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import EditSubscriptionScreen from "../screens/EditSubscriptionScreen";
 import SubscriptionDetailScreen from "../screens/SubscriptionDetailScreen";
 import { initializeAuthToken, getUserById } from "../api/api";
 import { navigationRef } from "./navigationService";
+import logger from "../utils/logger";
 
 const Stack = createStackNavigator();
 
@@ -21,20 +24,22 @@ const AppNavigator = () => {
   useEffect(() => {
     const checkUserStatus = async () => {
       try {
+        // Инициализируем токен авторизации
         await initializeAuthToken();
         const token = await AsyncStorage.getItem("authToken");
         const userId = await AsyncStorage.getItem("userId");
 
         if (token && userId) {
+          // Проверяем, существует ли пользователь с данным userId
           await verifyUserExists(userId);
         } else {
-          console.warn(
+          logger.warn(
             "Токен или userId отсутствуют, перенаправляем на регистрацию"
           );
           setInitialRoute("Register");
         }
       } catch (error) {
-        console.error("Ошибка при проверке статуса пользователя:", error);
+        logger.error("Ошибка при проверке статуса пользователя:", error);
         setInitialRoute("Register");
       } finally {
         setIsCheckingAuth(false);
@@ -47,15 +52,15 @@ const AppNavigator = () => {
         if (user) {
           setInitialRoute("SubscriptionList");
         } else {
-          console.warn("Пользователь не найден, перенаправляем на регистрацию");
+          logger.warn("Пользователь не найден, перенаправляем на регистрацию");
           setInitialRoute("Register");
         }
       } catch (error) {
         if (error.response?.status === 404) {
-          console.warn("Пользователь не найден, перенаправляем на регистрацию");
+          logger.warn("Пользователь не найден, перенаправляем на регистрацию");
           setInitialRoute("Register");
         } else {
-          console.error("Ошибка при получении пользователя:", error);
+          logger.error("Ошибка при получении пользователя:", error);
           setInitialRoute("Login");
         }
       }
@@ -104,6 +109,16 @@ const AppNavigator = () => {
           name="SubscriptionDetail"
           component={SubscriptionDetailScreen}
           options={{ title: "Детали подписки" }}
+        />
+        <Stack.Screen
+          name="ForgotPasswordScreen"
+          component={ForgotPasswordScreen}
+          options={{ title: "Забыли пароль?" }}
+        />
+        <Stack.Screen
+          name="ResetPasswordScreen"
+          component={ResetPasswordScreen}
+          options={{ title: "Новый пароль" }}
         />
       </Stack.Navigator>
     </NavigationContainer>

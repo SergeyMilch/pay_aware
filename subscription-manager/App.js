@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import * as Notifications from "expo-notifications";
 import AppNavigator from "./src/navigation/AppNavigator";
-import { initializeAuthToken, initializeApi } from "./src/api/api"; // Добавьте initializeApi
+import { checkUserStatus } from "./src/navigation/AppNavigator";
+import { initializeAuthToken, initializeApi } from "./src/api/api"; // initializeApi
 import { Alert } from "react-native";
 import logger from "./src/utils/logger"; // импорт логгера
 
@@ -26,11 +27,28 @@ const App = () => {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        initializeApi(); // Вызов инициализации интерсептора
-        await checkUserStatus(); // Проверяем статус пользователя
+        // Инициализация API
+        try {
+          initializeApi();
+        } catch (error) {
+          logger.error("Ошибка при инициализации API:", error);
+        }
 
-        await initializeAuthToken();
+        // Проверка статуса пользователя
+        try {
+          await checkUserStatus(); // await, чтобы дождаться завершения
+        } catch (error) {
+          logger.error("Ошибка при проверке статуса пользователя:", error);
+        }
 
+        // Инициализация токена авторизации
+        try {
+          initializeAuthToken();
+        } catch (error) {
+          logger.error("Ошибка при инициализации токена авторизации:", error);
+        }
+
+        // Установка обработчика уведомлений
         Notifications.setNotificationHandler({
           handleNotification: async () => ({
             shouldShowAlert: true,
@@ -65,6 +83,21 @@ const App = () => {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
     };
+  }, []);
+
+  // Проверка разрешений на уведомления
+  const getPermissions = async () => {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Уведомления не разрешены",
+        "Пожалуйста, включите уведомления в настройках."
+      );
+    }
+  };
+
+  useEffect(() => {
+    getPermissions();
   }, []);
 
   return <AppNavigator />;

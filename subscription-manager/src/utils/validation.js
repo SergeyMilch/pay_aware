@@ -16,6 +16,6 @@ export const IsValidPassword = (password) => {
 };
 
 export const isValidName = (input) =>
-  /^[a-zA-Zа-яА-Я0-9\s\-\.,!]+$/.test(input);
+  /^[a-zA-Zа-яА-Я0-9\s\-+\.,!]+$/.test(input);
 
 export const isValidPrice = (input) => /^\d+(\.\d{0,2})?$/.test(input);

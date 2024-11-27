@@ -7,6 +7,12 @@
         "image": "ubuntu-22.04-jdk-17-ndk-r27с",
         "gradleCommand": ":app:assembleRelease"
       }
+    },
+    "development": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     }
   }
 }

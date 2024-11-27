@@ -20,7 +20,7 @@ const SubscriptionDetailScreen = ({ route }) => {
     <View style={styles.container}>
       <Text style={styles.title}>{subscription.service_name}</Text>
       <Text style={styles.price}>
-        Стоимость: {subscription.cost.toFixed(2)}
+        Стоимость: {subscription.cost.toFixed(2)} ₽
       </Text>
       <Text style={styles.detail}>
         Дата создания: {new Date(subscription.CreatedAt).toLocaleString()}

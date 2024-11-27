@@ -108,6 +108,11 @@ jobs:
           SSL_CERT_PATH=${{ secrets.BACKEND_SSL_CERT_PATH }}
           SSL_KEY_PATH=${{ secrets.BACKEND_SSL_KEY_PATH }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          RESET_PASSWORD_URL=${{ secrets.BACKEND_RESET_PASSWORD_URL }}
+          SMTP_FROM=${{ secrets.BACKEND_SMTP_FROM }}
+          SMTP_HOST=${{ secrets.BACKEND_SMTP_HOST }}
+          SMTP_USER=${{ secrets.BACKEND_SMTP_USER }}
+          SMTP_PASS=${{ secrets.BACKEND_SMTP_PASS }}
           EOL
           EOF
 

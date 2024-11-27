@@ -59,10 +59,15 @@ export async function sendDeviceTokenToServer(deviceToken) {
     const authToken = await AsyncStorage.getItem("authToken");
     const userId = await AsyncStorage.getItem("userId");
 
-    if (!authToken || !userId) {
+    if (!authToken) {
       logger.error(
-        "authToken или userId отсутствует, невозможно обновить токен устройства"
+        "authToken отсутствует, невозможно обновить токен устройства"
       );
+      return;
+    }
+
+    if (!userId) {
+      logger.error("userId отсутствует, невозможно обновить токен устройства");
       return;
     }
 
@@ -71,10 +76,14 @@ export async function sendDeviceTokenToServer(deviceToken) {
       return;
     }
 
+    // Добавим логирование перед отправкой запроса
+    logger.log(`Отправка токена устройства на сервер для user_id: ${userId}`);
+
     await updateDeviceTokenOnServer({
       device_token: deviceToken,
       user_id: parseInt(userId, 10),
     });
+
     logger.log("Device token успешно обновлен на сервере");
   } catch (error) {
     if (error.response && error.response.status === 404) {
