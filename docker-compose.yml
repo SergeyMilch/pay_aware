@@ -12,7 +12,7 @@ services:
       - pay_aware_network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
-      interval: 10s
+      interval: 10m
       timeout: 5s
       retries: 5
     mem_limit: 512m
@@ -28,7 +28,7 @@ services:
       - pay_aware_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5m
       timeout: 5s
       retries: 5
     mem_limit: 256m
@@ -62,7 +62,7 @@ services:
           "grep",
           "imok",
         ]
-      interval: 10s
+      interval: 10m
       timeout: 5s
       retries: 5
     mem_limit: 2g
@@ -91,7 +91,7 @@ services:
           "CMD-SHELL",
           "kafka-topics.sh --list --bootstrap-server localhost:9092 || exit 1",
         ]
-      interval: 10s
+      interval: 5m
       timeout: 5s
       retries: 5
     mem_limit: 3g
@@ -180,7 +180,7 @@ services:
       - /var/www/pay_aware/.env:/app/.env
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
-      interval: 10s
+      interval: 10m
       timeout: 5s
       retries: 5
     mem_limit: 512m

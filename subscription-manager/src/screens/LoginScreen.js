@@ -117,7 +117,9 @@ const LoginScreen = ({ navigation }) => {
 
       <View style={{ marginTop: 20 }}>
         <TouchableOpacity
-          onPress={() => navigation.navigate("ForgotPasswordScreen")}
+          onPress={() => {
+            navigation.navigate("ForgotPasswordScreen");
+          }}
         >
           <Text style={{ color: "#007BFF", textAlign: "center" }}>
             Забыли пароль?

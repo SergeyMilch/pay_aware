@@ -9,7 +9,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { registerUser } from "../api/api";
-import { registerForPushNotificationsAsync } from "../utils/notifications";
+import {
+  registerForPushNotificationsAsync,
+  sendDeviceTokenToServer,
+} from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger";
 
@@ -54,28 +57,8 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
-      // Регистрируем токен устройства перед регистрацией пользователя
-      const deviceToken = await registerForPushNotificationsAsync();
-      if (!deviceToken) {
-        logger.warn("Не удалось получить токен устройства");
-        Alert.alert(
-          "Внимание",
-          "Не удалось получить токен устройства. Попробуйте снова."
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      logger.log("Device Token:", deviceToken);
-
-      // Обновляем данные для регистрации с токеном устройства
-      const updatedCredentials = {
-        ...credentials,
-        device_token: deviceToken,
-      };
-
-      // Регистрируем пользователя вместе с токеном устройства
-      const response = await registerUser(updatedCredentials);
+      // Регистрируем пользователя
+      const response = await registerUser(credentials);
 
       if (response && response.token && response.user_id) {
         logger.log("Пользователь успешно зарегистрирован");
@@ -84,6 +67,23 @@ const RegisterScreen = ({ navigation }) => {
         await AsyncStorage.setItem("authToken", response.token);
         await AsyncStorage.setItem("userId", response.user_id.toString());
         setAuthToken(response.token);
+
+        // Попытка получить токен устройства после успешной регистрации
+        const deviceToken = await registerForPushNotificationsAsync();
+        if (deviceToken) {
+          logger.log("Device Token:", deviceToken);
+          // Обновляем токен устройства на сервере
+          await sendDeviceTokenToServer({
+            device_token: deviceToken,
+            user_id: response.user_id,
+          });
+        } else {
+          logger.warn("Не удалось получить токен устройства после регистрации");
+          Alert.alert(
+            "Внимание",
+            "Не удалось получить токен устройства. Вы не будете получать напоминания о подписках. Проверьте настройки уведомлений."
+          );
+        }
 
         navigation.navigate("SubscriptionList");
       } else {

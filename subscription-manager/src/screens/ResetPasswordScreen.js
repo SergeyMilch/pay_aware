@@ -12,14 +12,16 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     const handleDeepLink = (event) => {
       const data = Linking.parse(event.url);
       if (data.path === "reset-password" && data.queryParams?.token) {
-        navigation.navigate("ResetPasswordScreen", {
+        navigation.replace("ResetPasswordScreen", {
           token: data.queryParams.token,
         });
       }
     };
 
-    Linking.addEventListener("url", handleDeepLink);
+    // Слушатель для открытия приложения из ссылки
+    const unsubscribe = Linking.addEventListener("url", handleDeepLink);
 
+    // Проверка начального URL, если приложение уже запущено
     Linking.getInitialURL().then((url) => {
       if (url) {
         handleDeepLink({ url });
@@ -27,7 +29,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     });
 
     return () => {
-      Linking.removeEventListener("url", handleDeepLink);
+      unsubscribe.remove();
     };
   }, []);
 
