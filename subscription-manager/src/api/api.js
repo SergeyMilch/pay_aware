@@ -1,5 +1,5 @@
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { Alert } from "react-native";
 import logger from "../utils/logger";
 import { navigationRef } from "../navigation/navigationService";
@@ -23,10 +23,12 @@ export const setAuthToken = (token) => {
   }
 };
 
-// Устанавливаем токен из AsyncStorage при запуске приложения
+// Устанавливаем токен из SecureStore при запуске приложения
 export const initializeAuthToken = async () => {
-  const token = await AsyncStorage.getItem("authToken");
-  setAuthToken(token);
+  const token = await SecureStore.getItemAsync("authToken");
+  if (token) {
+    setAuthToken(token);
+  }
 };
 
 // Устанавливаем интерсептор для обработки ошибок сессии
@@ -39,8 +41,8 @@ export const initializeApi = () => {
         const { status, data } = response;
 
         if (status === 401 && data.error === "Token has expired") {
-          await AsyncStorage.removeItem("authToken");
-          await AsyncStorage.removeItem("userId");
+          await SecureStore.deleteItemAsync("authToken");
+          await SecureStore.deleteItemAsync("userId");
 
           Alert.alert(
             "Сессия истекла",
@@ -79,8 +81,8 @@ export const registerUser = async (credentials) => {
     const { token, user_id } = response.data || {};
 
     if (token && user_id) {
-      await AsyncStorage.setItem("authToken", token);
-      await AsyncStorage.setItem("userId", user_id.toString());
+      await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("userId", user_id.toString());
       setAuthToken(token);
       logger.log("Пользователь успешно зарегистрирован");
       if (navigationRef.isReady()) {
@@ -138,8 +140,8 @@ export const loginUser = async (credentials) => {
     const { token, user_id } = response.data || {};
 
     if (token && user_id) {
-      await AsyncStorage.setItem("authToken", token);
-      await AsyncStorage.setItem("userId", user_id.toString());
+      await SecureStore.setItemAsync("authToken", token);
+      await SecureStore.setItemAsync("userId", user_id.toString());
       setAuthToken(token);
       if (navigationRef.isReady()) {
         navigationRef.navigate("SubscriptionList");

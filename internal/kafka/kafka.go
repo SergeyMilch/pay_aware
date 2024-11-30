@@ -1,19 +1,16 @@
 package kafka
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/SergeyMilch/pay_aware/internal/config"
 	"github.com/SergeyMilch/pay_aware/internal/logger"
 	"github.com/SergeyMilch/pay_aware/pkg/utils"
+	expo "github.com/oliveroneill/exponent-server-sdk-golang/sdk"
 )
 
 // KafkaProducer инкапсулирует Kafka producer и тему
@@ -122,48 +119,79 @@ func (kp *KafkaProducer) SendNotification(ctx context.Context, notification Noti
 
 // SendPushNotification отправляет push-уведомление с использованием Expo Push API
 func SendPushNotification(deviceToken, message string) error {
-	pushMessage := map[string]interface{}{
-		"to":    deviceToken,
-		"sound": "default",
-		"title": "Subscription Reminder",
-		"body":  message,
+	client := expo.NewPushClient(nil)
+
+	// Создаем сообщение для отправки
+	pushToken := expo.ExponentPushToken(deviceToken)
+	pushMessage := expo.PushMessage{
+		To:    []expo.ExponentPushToken{pushToken},
+		Sound: "default",
+		Title: "Subscription Reminder",
+		Body:  message,
 	}
 
-	jsonData, err := json.Marshal(pushMessage)
-	if err != nil {
-		logger.Error("Failed to marshal push message", "error", err)
-		return fmt.Errorf("failed to marshal push message: %v", err)
-	}
-
-	req, err := http.NewRequest("POST", os.Getenv("EXPO_URL_SEND"), bytes.NewBuffer(jsonData))
-	if err != nil {
-		logger.Error("Failed to create HTTP request for push notification", "error", err)
-		return fmt.Errorf("failed to create HTTP request: %v", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	// Отправляем уведомление
+	response, err := client.Publish(&pushMessage)
 	if err != nil {
 		logger.Error("Failed to send push notification", "error", err)
 		return fmt.Errorf("failed to send push notification: %v", err)
 	}
-	defer resp.Body.Close()
 
-	responseData, err := io.ReadAll(resp.Body)
-	if err != nil {
-		logger.Error("Failed to read push notification response body", "error", err)
-	}
-	logger.Debug("Push notification response received", "response", string(responseData))
-
-	if resp.StatusCode != http.StatusOK {
-		logger.Warn("Push notification request failed", "status", resp.StatusCode)
-		return fmt.Errorf("push notification request failed with status: %v", resp.StatusCode)
+	// Проверяем наличие ошибок в ответе
+	if err := response.ValidateResponse(); err != nil {
+		logger.Warn("Push notification request failed", "error", err)
+		return fmt.Errorf("push notification request failed: %v", err)
 	}
 
-	// Log на уровне отладки, чтобы не раскрывать содержимое сообщений в производственных logs
 	logger.Info("Push notification sent successfully")
 	logger.Debug("Push notification sent with content", "deviceToken", deviceToken, "message", message)
 	return nil
 }
+
+// // SendPushNotification отправляет push-уведомление с использованием Expo Push API
+// func SendPushNotification(deviceToken, message string) error {
+// 	pushMessage := map[string]interface{}{
+// 		"to":    deviceToken,
+// 		"sound": "default",
+// 		"title": "Subscription Reminder",
+// 		"body":  message,
+// 	}
+
+// 	jsonData, err := json.Marshal(pushMessage)
+// 	if err != nil {
+// 		logger.Error("Failed to marshal push message", "error", err)
+// 		return fmt.Errorf("failed to marshal push message: %v", err)
+// 	}
+
+// 	req, err := http.NewRequest("POST", os.Getenv("EXPO_URL_SEND"), bytes.NewBuffer(jsonData))
+// 	if err != nil {
+// 		logger.Error("Failed to create HTTP request for push notification", "error", err)
+// 		return fmt.Errorf("failed to create HTTP request: %v", err)
+// 	}
+
+// 	req.Header.Set("Content-Type", "application/json")
+
+// 	client := &http.Client{}
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		logger.Error("Failed to send push notification", "error", err)
+// 		return fmt.Errorf("failed to send push notification: %v", err)
+// 	}
+// 	defer resp.Body.Close()
+
+// 	responseData, err := io.ReadAll(resp.Body)
+// 	if err != nil {
+// 		logger.Error("Failed to read push notification response body", "error", err)
+// 	}
+// 	logger.Debug("Push notification response received", "response", string(responseData))
+
+// 	if resp.StatusCode != http.StatusOK {
+// 		logger.Warn("Push notification request failed", "status", resp.StatusCode)
+// 		return fmt.Errorf("push notification request failed with status: %v", resp.StatusCode)
+// 	}
+
+// 	// Log на уровне отладки, чтобы не раскрывать содержимое сообщений в производственных logs
+// 	logger.Info("Push notification sent successfully")
+// 	logger.Debug("Push notification sent with content", "deviceToken", deviceToken, "message", message)
+// 	return nil
+// }

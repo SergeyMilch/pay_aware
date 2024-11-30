@@ -5,7 +5,10 @@
     "version": "1.0.0",
     "scheme": "payawareapp",
     "newArchEnabled": true,
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -24,6 +27,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -34,11 +38,18 @@
               "pathPrefix": "/reset-password"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "useNextNotificationsApi": true,
-      "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "WAKE_LOCK"]
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -48,6 +59,9 @@
         "projectId": "6e51137e-084d-4364-a90c-14f366df944e"
       }
     },
-    "plugins": ["expo-asset"]
+    "plugins": [
+      "expo-asset",
+      "expo-secure-store"
+    ]
   }
 }

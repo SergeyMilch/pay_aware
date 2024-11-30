@@ -1,12 +1,12 @@
 import * as Notifications from "expo-notifications";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
 import { updateDeviceTokenOnServer } from "../api/api";
 import logger from "../utils/logger"; // Импорт логгера
 
 // Функция для регистрации и получения push-токена
 export async function registerForPushNotificationsAsync() {
-  let token;
+  let deviceToken;
   try {
     // Получение существующего статуса разрешений
     const { status: existingStatus } =
@@ -26,7 +26,6 @@ export async function registerForPushNotificationsAsync() {
       return null;
     }
 
-    // Получение токена устройства
     // Получение projectId из Constants
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     if (!projectId) {
@@ -39,25 +38,25 @@ export async function registerForPushNotificationsAsync() {
     logger.log("Получен токен устройства: ", data);
 
     if (data) {
-      token = data;
+      deviceToken = data;
     } else {
       logger.error("Ошибка: не удалось получить токен устройства.");
       return null;
     }
 
-    // Сохраняем токен в AsyncStorage, если он изменился
-    const savedToken = await AsyncStorage.getItem("deviceToken");
-    if (savedToken !== token) {
-      logger.log("Сохранение нового токена устройства в AsyncStorage");
-      await AsyncStorage.setItem("deviceToken", token);
-      await sendDeviceTokenToServer(token); // обновляем на сервере только при изменении
+    // Сохраняем токен в SecureStore, если он изменился
+    const savedToken = await SecureStore.getItemAsync("deviceToken");
+    if (savedToken !== deviceToken) {
+      logger.log("Сохранение нового токена устройства в SecureStore");
+      await SecureStore.setItemAsync("deviceToken", deviceToken);
+      await sendDeviceTokenToServer(deviceToken); // обновляем на сервере только при изменении
     } else {
       logger.log(
         "Device token не изменился, обновление на сервере не требуется"
       );
     }
 
-    return token;
+    return deviceToken;
   } catch (error) {
     logger.error("Ошибка при запросе разрешения на уведомления:", error);
     return null;
@@ -67,9 +66,9 @@ export async function registerForPushNotificationsAsync() {
 // Функция для отправки токена устройства на сервер
 export async function sendDeviceTokenToServer(deviceToken) {
   try {
-    // Получаем authToken и userId из AsyncStorage
-    const authToken = await AsyncStorage.getItem("authToken");
-    const userId = await AsyncStorage.getItem("userId");
+    // Получаем authToken и userId из SecureStore
+    const authToken = await SecureStore.getItemAsync("authToken");
+    const userId = await SecureStore.getItemAsync("userId");
 
     // Проверка наличия токенов
     if (!authToken) {

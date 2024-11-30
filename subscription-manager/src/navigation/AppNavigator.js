@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import SubscriptionListScreen from "../screens/SubscriptionListScreen";
@@ -26,8 +26,8 @@ const AppNavigator = () => {
       try {
         // Инициализируем токен авторизации
         await initializeAuthToken();
-        const token = await AsyncStorage.getItem("authToken");
-        const userId = await AsyncStorage.getItem("userId");
+        const token = await SecureStore.getItemAsync("authToken");
+        const userId = await SecureStore.getItemAsync("userId");
 
         if (token && userId) {
           // Проверяем, существует ли пользователь с данным userId

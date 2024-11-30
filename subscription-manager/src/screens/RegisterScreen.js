@@ -15,6 +15,7 @@ import {
 } from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger";
+import * as SecureStore from "expo-secure-store";
 
 const RegisterScreen = ({ navigation }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -64,8 +65,8 @@ const RegisterScreen = ({ navigation }) => {
         logger.log("Пользователь успешно зарегистрирован");
 
         // Сохраняем токен и user_id
-        await AsyncStorage.setItem("authToken", response.token);
-        await AsyncStorage.setItem("userId", response.user_id.toString());
+        await SecureStore.setItemAsync("authToken", response.token);
+        await SecureStore.setItemAsync("userId", response.user_id.toString());
         setAuthToken(response.token);
 
         // Попытка получить токен устройства после успешной регистрации

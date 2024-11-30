@@ -14,7 +14,7 @@ import {
   initializeAuthToken,
 } from "../api/api";
 import { useIsFocused } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
 import { navigationRef } from "../navigation/navigationService"; // Импорт navigationRef
 
@@ -27,7 +27,7 @@ const SubscriptionListScreen = () => {
 
   const fetchSubscriptions = async () => {
     try {
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
@@ -61,7 +61,7 @@ const SubscriptionListScreen = () => {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        const token = await AsyncStorage.getItem("authToken");
+        const token = await SecureStore.getItemAsync("authToken");
         if (token) {
           initializeAuthToken(token);
           fetchSubscriptions();
@@ -87,7 +87,7 @@ const SubscriptionListScreen = () => {
     }
 
     try {
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         if (navigationRef.isReady()) {
@@ -105,7 +105,7 @@ const SubscriptionListScreen = () => {
   };
 
   const handleAddSubscription = async () => {
-    const token = await AsyncStorage.getItem("authToken");
+    const token = await SecureStore.getItemAsync("authToken");
     if (!token) {
       Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
       if (navigationRef.isReady()) {
@@ -166,7 +166,7 @@ const SubscriptionListScreen = () => {
                   )}
                 </View>
                 <Text style={styles.subscriptionPrice}>
-                  ${item?.cost.toFixed(2)}
+                  {item?.cost.toFixed(2)} ₽
                 </Text>
               </TouchableOpacity>
 

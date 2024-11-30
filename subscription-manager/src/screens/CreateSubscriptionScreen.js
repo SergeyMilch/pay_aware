@@ -13,7 +13,7 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { createSubscription } from "../api/api";
 import { isValidName, isValidPrice } from "../utils/validation";
 import logger from "../utils/logger";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { navigationRef } from "../navigation/navigationService";
 
 const CreateSubscriptionScreen = ({ navigation }) => {
@@ -28,7 +28,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   // Проверка токена при загрузке экрана
   useEffect(() => {
     const checkToken = async () => {
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
@@ -63,7 +63,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
 
     try {
       // Проверка токена перед отправкой
-      const token = await AsyncStorage.getItem("authToken");
+      const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");

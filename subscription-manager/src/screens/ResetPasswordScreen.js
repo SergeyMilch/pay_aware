@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import * as Linking from "expo-linking";
 import { resetPassword } from "../api/api";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const [newPassword, setNewPassword] = useState("");
@@ -42,8 +42,8 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     try {
       const response = await resetPassword(token, newPassword);
       if (response.ok) {
-        await AsyncStorage.removeItem("authToken");
-        await AsyncStorage.removeItem("userId");
+        await SecureStore.deleteItemAsync("authToken");
+        await SecureStore.deleteItemAsync("userId");
 
         Alert.alert(
           "Успех",
