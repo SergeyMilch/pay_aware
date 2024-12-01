@@ -161,8 +161,8 @@ jobs:
         if: env.deploy_frontend == 'true'
         working-directory: ./subscription-manager
         run: |
-          npm install --legacy-peer-deps
-          npm install -g eas-cli
+          yarn install --frozen-lockfile
+          yarn global add eas-cli
 
       - name: Set up frontend environment variables
         if: env.deploy_frontend == 'true'
