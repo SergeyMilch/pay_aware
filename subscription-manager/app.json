@@ -37,7 +37,6 @@
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
-      "useNextNotificationsApi": true,
       "permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE", "WAKE_LOCK"]
     },
     "web": {
