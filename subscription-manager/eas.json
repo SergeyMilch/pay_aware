@@ -6,12 +6,20 @@
         "credentialsSource": "remote",
         "image": "ubuntu-22.04-jdk-17-ndk-r26b",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "API_URL": "https://pay-aware.ru:444",
+        "ENVIRONMENT": "production"
       }
     },
     "development": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "API_URL": "https://pay-aware.ru:444",
+        "ENVIRONMENT": "development"
       }
     }
   }
