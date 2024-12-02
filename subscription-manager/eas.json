@@ -8,8 +8,12 @@
         "gradleCommand": ":app:assembleRelease"
       },
       "env": {
-        "API_URL": "https://pay-aware.ru:444",
-        "ENVIRONMENT": "production"
+        "API_URL": "@API_URL",
+        "ENVIRONMENT": "production",
+        "GOOGLE_SERVICES_JSON": "@project:GOOGLE_SERVICES_JSON"
+      },
+      "hooks": {
+        "pre-build": "echo \"$GOOGLE_SERVICES_JSON\" > ./google-services.json"
       }
     },
     "development": {
@@ -18,8 +22,12 @@
         "buildType": "apk"
       },
       "env": {
-        "API_URL": "https://pay-aware.ru:444",
-        "ENVIRONMENT": "development"
+        "API_URL": "@API_URL",
+        "ENVIRONMENT": "development",
+        "GOOGLE_SERVICES_JSON": "@project:GOOGLE_SERVICES_JSON"
+      },
+      "hooks": {
+        "pre-build": "echo \"$GOOGLE_SERVICES_JSON\" > ./google-services.json"
       }
     }
   }
