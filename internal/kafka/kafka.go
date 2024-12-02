@@ -64,7 +64,7 @@ func InitKafka(cfg config.KafkaConfig) (*KafkaProducer, error) {
 		return nil, err
 	}
 
-	logger.Info("Kafka producer successfully initialized", "broker", kafkaBroker, "topic", cfg.Topic)
+	logger.Debug("Kafka producer successfully initialized", "broker", kafkaBroker, "topic", cfg.Topic)
 	return &KafkaProducer{producer: producer, topic: cfg.Topic}, nil
 }
 

@@ -99,14 +99,9 @@ func main() {
 	}
 
 	// Добавляем health-check эндпоинт
-	r.GET("/health", func(c *gin.Context) {
-		logger.Info("Health endpoint hit")  // Логируем вызов health check
-		c.JSON(200, gin.H{
-			"status": "ok",
-		})
+	r.GET("/health", middleware.InternalAccessMiddleware(), func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
 	})
-
-	r.GET("/clear-cache", handlers.ClearCache)
 
 	// Запускаем сервер
 	logger.Info("Starting server on port 8000")

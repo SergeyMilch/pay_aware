@@ -93,7 +93,11 @@ const AppNavigator = () => {
         <Stack.Screen
           name="SubscriptionList"
           component={SubscriptionListScreen}
-          options={{ title: "Список подписок" }}
+          options={{
+            title: "Список подписок",
+            headerLeft: null, // Убираем кнопку назад на экране списка подписок
+            gestureEnabled: false, // Отключаем жест назад
+          }}
         />
         <Stack.Screen
           name="CreateSubscription"

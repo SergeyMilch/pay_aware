@@ -167,6 +167,7 @@ services:
       KAFKA_TOPIC: ${KAFKA_TOPIC}
       JWT_SECRET: ${JWT_SECRET}
       LOGSTASH_ADDR: ${LOGSTASH_ADDR}
+      INTERNAL_ACCESS_TOKEN: ${INTERNAL_ACCESS_TOKEN}
     depends_on:
       - postgres
       - redis
@@ -179,7 +180,11 @@ services:
     volumes:
       - /var/www/pay_aware/.env:/app/.env
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --header='X-Internal-Access-Token: ${INTERNAL_ACCESS_TOKEN}' -qO- http://127.0.0.1:8000/health || exit 1",
+        ]
       interval: 10m
       timeout: 5s
       retries: 5

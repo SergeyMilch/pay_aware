@@ -15,6 +15,10 @@ import { isValidName, isValidPrice } from "../utils/validation";
 import logger from "../utils/logger";
 import * as SecureStore from "expo-secure-store";
 import { navigationRef } from "../navigation/navigationService";
+import {
+  registerForPushNotificationsAsync,
+  sendDeviceTokenToServer,
+} from "../utils/notifications";
 
 const CreateSubscriptionScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -24,6 +28,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notificationOffset, setNotificationOffset] = useState(null);
+  const [deviceToken, setDeviceToken] = useState("");
 
   // Проверка токена при загрузке экрана
   useEffect(() => {
@@ -43,6 +48,34 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       setPrice(formattedText);
     }
   };
+
+  // Проверка разрешений на уведомления при выборе напоминания
+  const handleNotificationOption = async (offset) => {
+    logger.log("Проверяем статус разрешений для push-уведомлений...");
+    const deviceToken = await registerForPushNotificationsAsync();
+
+    if (deviceToken) {
+      logger.log("Получен токен устройства.");
+      setDeviceToken(deviceToken);
+      await sendDeviceTokenToServer(deviceToken);
+      logger.log("Токен устройства успешно отправлен на сервер.");
+      setNotificationOffset(offset);
+    } else {
+      logger.warn(
+        "Не удалось получить разрешение на push-уведомления. Пожалуйста, включите уведомления в настройках."
+      );
+      Alert.alert(
+        "Необходимо включить уведомления",
+        "Для получения напоминаний о подписке необходимо включить уведомления. Пожалуйста, включите уведомления в настройках устройства.",
+        [
+          {
+            text: "Ок",
+          },
+        ]
+      );
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
@@ -61,6 +94,14 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       return;
     }
 
+    if (notificationOffset !== null && !deviceToken) {
+      setError(
+        "Для установки напоминания необходимо включить уведомления. Пожалуйста, проверьте настройки устройства."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       // Проверка токена перед отправкой
       const token = await SecureStore.getItemAsync("authToken");
@@ -70,6 +111,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         return;
       }
 
+      // Создаем подписку
       const response = await createSubscription({
         service_name: name,
         cost: parsedPrice,
@@ -151,7 +193,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
             styles.notificationButton,
             notificationOffset === 1440 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(1440)}
+          onPress={() => handleNotificationOption(1440)}
         >
           <Text>За день</Text>
         </TouchableOpacity>
@@ -160,7 +202,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
             styles.notificationButton,
             notificationOffset === 60 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(60)}
+          onPress={() => handleNotificationOption(60)}
         >
           <Text>За час</Text>
         </TouchableOpacity>
@@ -169,7 +211,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
             styles.notificationButton,
             notificationOffset === 15 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(15)}
+          onPress={() => handleNotificationOption(15)}
         >
           <Text>За 15 минут</Text>
         </TouchableOpacity>

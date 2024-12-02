@@ -9,12 +9,10 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { registerUser } from "../api/api";
-import {
-  registerForPushNotificationsAsync,
-  sendDeviceTokenToServer,
-} from "../utils/notifications";
+import { registerForPushNotificationsAsync } from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
-import logger from "../utils/logger";
+import logger from "../utils/logger"; // Импорт логгера
+import { setAuthToken } from "../api/api"; // Подключаем setAuthToken
 import * as SecureStore from "expo-secure-store";
 
 const RegisterScreen = ({ navigation }) => {
@@ -58,8 +56,34 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
-      // Регистрируем пользователя
-      const response = await registerUser(credentials);
+      // Объяснение важности push-уведомлений
+      const userConsent = await new Promise((resolve) => {
+        Alert.alert(
+          "Важное уведомление",
+          "Для того чтобы получать напоминания о подписках, необходимо разрешить отправку push-уведомлений. Это ключевая функция приложения.",
+          [
+            { text: "Отказаться", onPress: () => resolve(false) },
+            { text: "Разрешить", onPress: () => resolve(true) },
+          ]
+        );
+      });
+
+      let deviceToken = null;
+      if (userConsent) {
+        deviceToken = await registerForPushNotificationsAsync();
+        if (!deviceToken) {
+          logger.warn("Не удалось получить токен устройства");
+        }
+      }
+
+      // Обновляем данные для регистрации с токеном устройства (если имеется)
+      const updatedCredentials = {
+        ...credentials,
+        device_token: deviceToken,
+      };
+
+      // Регистрируем пользователя вместе с токеном устройства (если он есть)
+      const response = await registerUser(updatedCredentials);
 
       if (response && response.token && response.user_id) {
         logger.log("Пользователь успешно зарегистрирован");
@@ -68,23 +92,6 @@ const RegisterScreen = ({ navigation }) => {
         await SecureStore.setItemAsync("authToken", response.token);
         await SecureStore.setItemAsync("userId", response.user_id.toString());
         setAuthToken(response.token);
-
-        // Попытка получить токен устройства после успешной регистрации
-        const deviceToken = await registerForPushNotificationsAsync();
-        if (deviceToken) {
-          logger.log("Device Token:", deviceToken);
-          // Обновляем токен устройства на сервере
-          await sendDeviceTokenToServer({
-            device_token: deviceToken,
-            user_id: response.user_id,
-          });
-        } else {
-          logger.warn("Не удалось получить токен устройства после регистрации");
-          Alert.alert(
-            "Внимание",
-            "Не удалось получить токен устройства. Вы не будете получать напоминания о подписках. Проверьте настройки уведомлений."
-          );
-        }
 
         navigation.navigate("SubscriptionList");
       } else {

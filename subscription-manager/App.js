@@ -5,6 +5,7 @@ import { checkUserStatus } from "./src/navigation/AppNavigator";
 import { initializeAuthToken, initializeApi } from "./src/api/api"; // initializeApi
 import { Alert } from "react-native";
 import logger from "./src/utils/logger"; // импорт логгера
+import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 
 // Подавление глобальных ошибок в Expo
 if (!__DEV__) {
@@ -46,6 +47,19 @@ const App = () => {
           initializeAuthToken();
         } catch (error) {
           logger.error("Ошибка при инициализации токена авторизации:", error);
+        }
+
+        // Регистрация push-уведомлений
+        try {
+          const deviceToken = await registerForPushNotificationsAsync();
+          if (deviceToken) {
+            logger.log(
+              "Токен устройства успешно зарегистрирован:",
+              deviceToken
+            );
+          }
+        } catch (error) {
+          logger.error("Ошибка при регистрации токена устройства:", error);
         }
 
         // Установка обработчика уведомлений

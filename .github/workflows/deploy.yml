@@ -113,6 +113,7 @@ jobs:
           SMTP_HOST=${{ secrets.BACKEND_SMTP_HOST }}
           SMTP_USER=${{ secrets.BACKEND_SMTP_USER }}
           SMTP_PASS=${{ secrets.BACKEND_SMTP_PASS }}
+          INTERNAL_ACCESS_TOKEN=${{ secrets.BACKEND_INTERNAL_ACCESS_TOKEN }}
           EOL
           EOF
 

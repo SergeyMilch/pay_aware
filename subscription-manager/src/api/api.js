@@ -5,9 +5,6 @@ import logger from "../utils/logger";
 import { navigationRef } from "../navigation/navigationService";
 import { API_URL } from "@env";
 
-// Логируем API_URL для проверки
-console.log("API_URL:", API_URL);
-
 // Настройка экземпляра axios с базовым URL и заголовками
 const api = axios.create({
   baseURL: API_URL,
@@ -17,16 +14,11 @@ const api = axios.create({
   },
 });
 
-// Логируем базовый URL для проверки
-console.log("Axios Base URL:", api.defaults.baseURL);
-
 // Функция для добавления/удаления токена авторизации в заголовки
 export const setAuthToken = (token) => {
-  console.log("Setting auth token:", token);
   if (token) {
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   } else {
-    console.log("Removing auth token");
     delete api.defaults.headers.common["Authorization"];
   }
 };
@@ -34,7 +26,6 @@ export const setAuthToken = (token) => {
 // Устанавливаем токен из SecureStore при запуске приложения
 export const initializeAuthToken = async () => {
   const token = await SecureStore.getItemAsync("authToken");
-  console.log("Retrieved token from SecureStore:", token);
   if (token) {
     setAuthToken(token);
   }
@@ -42,26 +33,14 @@ export const initializeAuthToken = async () => {
 
 // Устанавливаем интерсептор для обработки ошибок сессии
 export const initializeApi = () => {
-  api.interceptors.request.use((request) => {
-    console.log("Starting Request:", request);
-    return request;
-  });
-
   api.interceptors.response.use(
-    (response) => {
-      console.log("Response:", response);
-      return response;
-    },
+    (response) => response,
     async (error) => {
-      console.log("Error Response:", error.response || error.message);
       const { response } = error;
       if (response) {
         const { status, data } = response;
 
         if (status === 401 && data.error === "Token has expired") {
-          console.log(
-            "Token expired. Clearing SecureStore and navigating to Login."
-          );
           await SecureStore.deleteItemAsync("authToken");
           await SecureStore.deleteItemAsync("userId");
 
@@ -97,23 +76,30 @@ export const initializeApi = () => {
 
 // Функция для регистрации пользователя
 export const registerUser = async (credentials) => {
-  console.log("Registering user with credentials:", credentials);
   try {
+    logger.log("Отправляем запрос на регистрацию...");
     const response = await api.post("/users", credentials);
-    console.log("Register User Response:", response.data);
+    logger.log("Ответ от сервера при регистрации:", response);
+
     const { token, user_id } = response.data || {};
 
     if (token && user_id) {
-      console.log("Saving token and user_id to SecureStore");
+      logger.log("Сохраняем токен и user_id...");
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user_id.toString());
+
       setAuthToken(token);
-      logger.log("Пользователь успешно зарегистрирован");
+      logger.log("Токен авторизации установлен.");
+
       if (navigationRef.isReady()) {
         navigationRef.navigate("SubscriptionList");
       }
     } else {
       logger.error("Некорректный ответ от сервера при регистрации:", response);
+      Alert.alert(
+        "Ошибка",
+        "Некорректный ответ от сервера. Пожалуйста, попробуйте снова."
+      );
     }
     return response.data;
   } catch (error) {
@@ -125,15 +111,14 @@ export const registerUser = async (credentials) => {
 
 // Обработка ошибок при регистрации
 const handleRegistrationError = (error) => {
-  console.log("Handling registration error:", error);
   if (error.response?.status === 409) {
     Alert.alert(
       "Пользователь уже зарегистрирован",
       "Этот email уже занят. Пожалуйста, войдите с вашими данными.",
       [
-        { text: "Отмена", style: "cancel" },
+        { text: "Отмена", style: "cancel" }, // Кнопка "Отмена" будет слева
         {
-          text: "Войти",
+          text: "Войти", // Кнопка "Войти" будет справа
           onPress: () => {
             setTimeout(() => {
               if (navigationRef.isReady()) {
@@ -158,16 +143,13 @@ const handleRegistrationError = (error) => {
   }
 };
 
-// Логируем логин
+// Функция для логина пользователя
 export const loginUser = async (credentials) => {
-  console.log("Logging in user with credentials:", credentials);
   try {
     const response = await api.post("/users/login", credentials);
-    console.log("Login Response:", response.data);
     const { token, user_id } = response.data || {};
 
     if (token && user_id) {
-      console.log("Saving token and user_id to SecureStore");
       await SecureStore.setItemAsync("authToken", token);
       await SecureStore.setItemAsync("userId", user_id.toString());
       setAuthToken(token);
@@ -179,7 +161,6 @@ export const loginUser = async (credentials) => {
       Alert.alert("Ошибка", "Ошибка при входе. Пожалуйста, попробуйте снова.");
     }
   } catch (error) {
-    console.log("Login Error:", error);
     handleLoginError(error);
     throw error;
   }
@@ -261,17 +242,14 @@ export const getUserById = createApiCall(
 // Универсальная функция для вызова API с автоматической обработкой ошибок
 function createApiCall(endpoint, errorMessage, method = "get") {
   return async (data) => {
-    const url = typeof endpoint === "function" ? endpoint(data) : endpoint;
-    console.log(`Calling API: ${url} with method: ${method} and data:`, data);
     try {
+      const url = typeof endpoint === "function" ? endpoint(data) : endpoint;
       const response = await api[method](
         url,
         method === "get" || method === "delete" ? undefined : data
       );
-      console.log("API Response:", response.data);
       return response.data;
     } catch (error) {
-      console.log(`${errorMessage}:`, error);
       if (error.message === "SessionExpired") {
         return;
       }
