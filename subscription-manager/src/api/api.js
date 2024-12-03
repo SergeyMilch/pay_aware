@@ -26,9 +26,14 @@ export const setAuthToken = (token) => {
 
 // Устанавливаем токен из SecureStore при запуске приложения
 export const initializeAuthToken = async () => {
-  const token = await SecureStore.getItemAsync("authToken");
-  if (token) {
-    setAuthToken(token);
+  try {
+    const token = await SecureStore.getItemAsync("authToken");
+    if (token) {
+      setAuthToken(token);
+    }
+  } catch (error) {
+    logger.error("Ошибка при инициализации токена авторизации:", error);
+    setAuthToken(null);
   }
 };
 
@@ -42,7 +47,7 @@ export const isTokenExpired = (token) => {
     }
     return true;
   } catch (error) {
-    console.error("Ошибка при проверке истечения токена:", error);
+    logger.error("Ошибка при проверке истечения токена:", error);
     return true; // Если произошла ошибка, считаем, что токен истек
   }
 };
@@ -57,8 +62,12 @@ export const initializeApi = () => {
         const { status, data } = response;
 
         if (status === 401 && data.error === "Token has expired") {
-          await SecureStore.deleteItemAsync("authToken");
-          await SecureStore.deleteItemAsync("userId");
+          try {
+            await SecureStore.deleteItemAsync("authToken");
+            await SecureStore.deleteItemAsync("userId");
+          } catch (error) {
+            logger.error("Ошибка при удалении токенов из SecureStore:", error);
+          }
 
           Alert.alert(
             "Сессия истекла",
@@ -82,6 +91,11 @@ export const initializeApi = () => {
         }
       } else if (error.code === "ECONNABORTED") {
         logger.warn("Ошибка таймаута запроса:", error);
+      } else if (!error.response && error.message.includes("Network Error")) {
+        Alert.alert(
+          "Ошибка сети",
+          "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
+        );
       } else {
         logger.warn("Неизвестная ошибка:", error);
       }
@@ -100,12 +114,15 @@ export const registerUser = async (credentials) => {
     const { token, user_id } = response.data || {};
 
     if (token && user_id) {
-      logger.log("Сохраняем токен и user_id...");
-      await SecureStore.setItemAsync("authToken", token);
-      await SecureStore.setItemAsync("userId", user_id.toString());
-
-      setAuthToken(token);
-      logger.log("Токен авторизации установлен.");
+      try {
+        logger.log("Сохраняем токен и user_id...");
+        await SecureStore.setItemAsync("authToken", token);
+        await SecureStore.setItemAsync("userId", user_id.toString());
+        setAuthToken(token);
+        logger.log("Токен авторизации установлен.");
+      } catch (error) {
+        logger.error("Ошибка при сохранении токена или userId:", error);
+      }
 
       if (navigationRef.isReady()) {
         navigationRef.navigate("SubscriptionList");
@@ -119,8 +136,58 @@ export const registerUser = async (credentials) => {
     }
     return response.data;
   } catch (error) {
-    logger.error("Ошибка при регистрации пользователя:", error);
-    handleRegistrationError(error);
+    if (error.message.includes("Network Error")) {
+      Alert.alert(
+        "Ошибка сети",
+        "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
+      );
+    } else {
+      handleRegistrationError(error);
+    }
+    throw error;
+  }
+};
+
+// Функция для логина пользователя
+export const loginUser = async (credentials) => {
+  try {
+    logger.log("Отправляем запрос на логин...");
+    const response = await api.post("/users/login", credentials);
+    logger.log("Ответ от сервера при логине:", response);
+
+    const { token, user_id } = response.data || {};
+
+    if (token && user_id) {
+      try {
+        logger.log("Сохраняем токен и user_id...");
+        await SecureStore.setItemAsync("authToken", token);
+        await SecureStore.setItemAsync("userId", user_id.toString());
+        setAuthToken(token);
+        logger.log("Токен авторизации установлен.");
+      } catch (error) {
+        logger.error("Ошибка при сохранении токена или userId:", error);
+      }
+
+      if (navigationRef.isReady()) {
+        navigationRef.navigate("SubscriptionList");
+      }
+    } else {
+      logger.error("Некорректный ответ от сервера при логине:", response);
+      Alert.alert(
+        "Ошибка",
+        "Некорректный ответ от сервера. Пожалуйста, попробуйте снова."
+      );
+    }
+    return response.data;
+  } catch (error) {
+    if (error.message.includes("Network Error")) {
+      Alert.alert(
+        "Ошибка сети",
+        "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
+      );
+    } else {
+      handleLoginError(error);
+    }
     throw error;
   }
 };
@@ -156,29 +223,6 @@ const handleRegistrationError = (error) => {
       "Ошибка",
       "Ошибка при регистрации. Пожалуйста, попробуйте снова."
     );
-  }
-};
-
-// Функция для логина пользователя
-export const loginUser = async (credentials) => {
-  try {
-    const response = await api.post("/users/login", credentials);
-    const { token, user_id } = response.data || {};
-
-    if (token && user_id) {
-      await SecureStore.setItemAsync("authToken", token);
-      await SecureStore.setItemAsync("userId", user_id.toString());
-      setAuthToken(token);
-      if (navigationRef.isReady()) {
-        navigationRef.navigate("SubscriptionList");
-      }
-      return response.data;
-    } else {
-      Alert.alert("Ошибка", "Ошибка при входе. Пожалуйста, попробуйте снова.");
-    }
-  } catch (error) {
-    handleLoginError(error);
-    throw error;
   }
 };
 

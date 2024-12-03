@@ -3,7 +3,7 @@ export default {
     name: "subscription-manager",
     slug: "subscription-manager",
     version: "1.0.0",
-    scheme: "payawareapp",
+    scheme: "payawareapp", // схема приложения, используется для deeplink
     newArchEnabled: true,
     platforms: ["ios", "android"],
     orientation: "portrait",
@@ -32,7 +32,11 @@ export default {
           data: [
             {
               scheme: "https",
-              host: "pay-aware.ru:444",
+              host: "pay-aware.ru",
+              pathPrefix: "/reset-password",
+            },
+            {
+              scheme: "payawareapp", // добавляем кастомную схему приложения
               pathPrefix: "/reset-password",
             },
           ],

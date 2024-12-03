@@ -1,11 +1,17 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import AppNavigator from "./src/navigation/AppNavigator";
-import { checkUserStatus } from "./src/navigation/AppNavigator";
-import { initializeAuthToken, initializeApi } from "./src/api/api"; // initializeApi
-import { Alert } from "react-native";
-import logger from "./src/utils/logger"; // импорт логгера
+import {
+  initializeAuthToken,
+  initializeApi,
+  getUserById,
+  isTokenExpired,
+} from "./src/api/api";
+import { Alert, View, Text } from "react-native";
+import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
+import * as SecureStore from "expo-secure-store";
+import * as Linking from "expo-linking"; // Добавлен импорт Linking
 
 // Подавление глобальных ошибок в Expo
 if (!__DEV__) {
@@ -25,6 +31,9 @@ if (!__DEV__) {
 }
 
 const App = () => {
+  const [initialRoute, setInitialRoute] = useState(null);
+  const [isInitializing, setIsInitializing] = useState(true);
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -35,31 +44,54 @@ const App = () => {
           logger.error("Ошибка при инициализации API:", error);
         }
 
-        // Проверка статуса пользователя
-        try {
-          await checkUserStatus(); // await, чтобы дождаться завершения
-        } catch (error) {
-          logger.error("Ошибка при проверке статуса пользователя:", error);
+        // Проверка глубоких ссылок (URL для сброса пароля)
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          const data = Linking.parse(initialUrl);
+          if (data.path === "reset-password" && data.queryParams?.token) {
+            logger.log(
+              "Приложение открыто через глубокую ссылку для сброса пароля"
+            );
+            setInitialRoute({
+              name: "ResetPasswordScreen",
+              params: { token: data.queryParams.token },
+            });
+            setIsInitializing(false);
+            return;
+          }
         }
 
-        // Инициализация токена авторизации
-        try {
-          initializeAuthToken();
-        } catch (error) {
-          logger.error("Ошибка при инициализации токена авторизации:", error);
+        // Проверка статуса пользователя
+        await initializeAuthToken();
+        const token = await SecureStore.getItemAsync("authToken");
+        const userId = await SecureStore.getItemAsync("userId");
+
+        if (token && userId) {
+          if (isTokenExpired(token)) {
+            logger.warn("JWT токен истек, перенаправляем на экран логина");
+            setInitialRoute("Login");
+          } else {
+            const user = await getUserById(userId);
+            if (user) {
+              setInitialRoute("SubscriptionList");
+            } else {
+              logger.warn(
+                "Пользователь не найден, перенаправляем на регистрацию"
+              );
+              setInitialRoute("Register");
+            }
+          }
+        } else {
+          logger.warn(
+            "Токен или userId отсутствуют, перенаправляем на регистрацию"
+          );
+          setInitialRoute("Register");
         }
 
         // Регистрация push-уведомлений
-        try {
-          const deviceToken = await registerForPushNotificationsAsync();
-          if (deviceToken) {
-            logger.log(
-              "Токен устройства успешно зарегистрирован:",
-              deviceToken
-            );
-          }
-        } catch (error) {
-          logger.error("Ошибка при регистрации токена устройства:", error);
+        const deviceToken = await registerForPushNotificationsAsync();
+        if (deviceToken) {
+          logger.log("Токен устройства успешно зарегистрирован:", deviceToken);
         }
 
         // Установка обработчика уведомлений
@@ -72,6 +104,9 @@ const App = () => {
         });
       } catch (error) {
         logger.error("Ошибка при инициализации приложения:", error);
+        setInitialRoute("Register");
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -100,21 +135,29 @@ const App = () => {
   }, []);
 
   // Проверка разрешений на уведомления
-  const getPermissions = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert(
-        "Уведомления не разрешены",
-        "Пожалуйста, включите уведомления в настройках."
-      );
-    }
-  };
-
   useEffect(() => {
+    const getPermissions = async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Уведомления не разрешены",
+          "Пожалуйста, включите уведомления в настройках."
+        );
+      }
+    };
+
     getPermissions();
   }, []);
 
-  return <AppNavigator />;
+  if (isInitializing || !initialRoute) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <Text>Загрузка...</Text>
+      </View>
+    );
+  }
+
+  return <AppNavigator initialRoute={initialRoute} />;
 };
 
 export default App;
