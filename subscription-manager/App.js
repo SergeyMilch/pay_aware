@@ -11,7 +11,7 @@ import { Alert, View, Text } from "react-native";
 import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import * as SecureStore from "expo-secure-store";
-import * as Linking from "expo-linking"; // Добавлен импорт Linking
+import * as Linking from "expo-linking"; // Импортируем Linking для работы с глубокими ссылками
 
 // Подавление глобальных ошибок в Expo
 if (!__DEV__) {
@@ -38,28 +38,7 @@ const App = () => {
     const initializeApp = async () => {
       try {
         // Инициализация API
-        try {
-          initializeApi();
-        } catch (error) {
-          logger.error("Ошибка при инициализации API:", error);
-        }
-
-        // Проверка глубоких ссылок (URL для сброса пароля)
-        const initialUrl = await Linking.getInitialURL();
-        if (initialUrl) {
-          const data = Linking.parse(initialUrl);
-          if (data.path === "reset-password" && data.queryParams?.token) {
-            logger.log(
-              "Приложение открыто через глубокую ссылку для сброса пароля"
-            );
-            setInitialRoute({
-              name: "ResetPasswordScreen",
-              params: { token: data.queryParams.token },
-            });
-            setIsInitializing(false);
-            return;
-          }
-        }
+        initializeApi();
 
         // Проверка статуса пользователя
         await initializeAuthToken();
@@ -68,13 +47,17 @@ const App = () => {
 
         if (token && userId) {
           if (isTokenExpired(token)) {
+            // Если токен истек, перенаправляем на экран логина
             logger.warn("JWT токен истек, перенаправляем на экран логина");
             setInitialRoute("Login");
           } else {
+            // Если токен действителен, проверяем наличие пользователя
             const user = await getUserById(userId);
             if (user) {
+              // Пользователь найден, переходим на экран списка подписок
               setInitialRoute("SubscriptionList");
             } else {
+              // Если пользователь не найден, перенаправляем на регистрацию
               logger.warn(
                 "Пользователь не найден, перенаправляем на регистрацию"
               );
@@ -82,6 +65,7 @@ const App = () => {
             }
           }
         } else {
+          // Если нет токена или userId, перенаправляем на регистрацию
           logger.warn(
             "Токен или userId отсутствуют, перенаправляем на регистрацию"
           );
@@ -128,9 +112,24 @@ const App = () => {
         logger.log("Notification Response:", response);
       });
 
+    // Добавление слушателя для глубоких ссылок, когда приложение уже открыто
+    const handleDeepLink = (event) => {
+      const data = Linking.parse(event.url);
+      if (data.path === "reset-password" && data.queryParams?.token) {
+        logger.log("Получена глубокая ссылка для сброса пароля после открытия");
+        setInitialRoute({
+          name: "ResetPasswordScreen",
+          params: { token: data.queryParams.token },
+        });
+      }
+    };
+
+    const linkingListener = Linking.addEventListener("url", handleDeepLink);
+
     return () => {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
+      linkingListener.remove();
     };
   }, []);
 

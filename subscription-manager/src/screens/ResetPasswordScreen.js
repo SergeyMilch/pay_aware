@@ -1,33 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
-import * as Linking from "expo-linking";
 import { resetPassword } from "../api/api";
 import * as SecureStore from "expo-secure-store";
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const [newPassword, setNewPassword] = useState("");
-  const [token, setToken] = useState(route.params?.token || "");
-
-  useEffect(() => {
-    const handleDeepLink = (event) => {
-      const data = Linking.parse(event.url);
-      if (data.path === "reset-password" && data.queryParams?.token) {
-        setToken(data.queryParams.token);
-      }
-    };
-
-    const subscription = Linking.addListener("url", handleDeepLink);
-
-    Linking.getInitialURL().then((url) => {
-      if (url) {
-        handleDeepLink({ url });
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, []);
+  const [token] = useState(route.params?.token || "");
 
   useEffect(() => {
     if (!token) {
