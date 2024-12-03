@@ -11,9 +11,6 @@
         "API_URL": "@API_URL",
         "ENVIRONMENT": "production",
         "GOOGLE_SERVICES_JSON": "@project:GOOGLE_SERVICES_JSON"
-      },
-      "hooks": {
-        "pre-build": "echo \"$GOOGLE_SERVICES_JSON\" > ./google-services.json"
       }
     },
     "development": {
@@ -25,9 +22,6 @@
         "API_URL": "@API_URL",
         "ENVIRONMENT": "development",
         "GOOGLE_SERVICES_JSON": "@project:GOOGLE_SERVICES_JSON"
-      },
-      "hooks": {
-        "pre-build": "echo \"$GOOGLE_SERVICES_JSON\" > ./google-services.json"
       }
     }
   }
