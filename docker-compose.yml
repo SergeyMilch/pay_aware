@@ -168,6 +168,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       LOGSTASH_ADDR: ${LOGSTASH_ADDR}
       INTERNAL_ACCESS_TOKEN: ${INTERNAL_ACCESS_TOKEN}
+      ENV: ${ENV}
     depends_on:
       - postgres
       - redis

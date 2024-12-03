@@ -6,22 +6,18 @@ import * as SecureStore from "expo-secure-store";
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const [newPassword, setNewPassword] = useState("");
-  const token = route.params?.token;
+  const [token, setToken] = useState(route.params?.token || "");
 
   useEffect(() => {
     const handleDeepLink = (event) => {
       const data = Linking.parse(event.url);
       if (data.path === "reset-password" && data.queryParams?.token) {
-        navigation.replace("ResetPasswordScreen", {
-          token: data.queryParams.token,
-        });
+        setToken(data.queryParams.token);
       }
     };
 
-    // Слушатель для открытия приложения из ссылки
-    const unsubscribe = Linking.addEventListener("url", handleDeepLink);
+    const subscription = Linking.addListener("url", handleDeepLink);
 
-    // Проверка начального URL, если приложение уже запущено
     Linking.getInitialURL().then((url) => {
       if (url) {
         handleDeepLink({ url });
@@ -29,9 +25,20 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     });
 
     return () => {
-      unsubscribe.remove();
+      subscription.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (!token) {
+      Alert.alert("Ошибка", "Токен не найден. Попробуйте снова.", [
+        {
+          text: "OK",
+          onPress: () => navigation.navigate("ForgotPasswordScreen"),
+        },
+      ]);
+    }
+  }, [token]);
 
   const handleResetPassword = async () => {
     if (!newPassword.trim()) {

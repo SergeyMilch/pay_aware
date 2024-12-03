@@ -1,4 +1,5 @@
 import axios from "axios";
+import jwtDecode from "jwt-decode";
 import * as SecureStore from "expo-secure-store";
 import { Alert } from "react-native";
 import logger from "../utils/logger";
@@ -28,6 +29,21 @@ export const initializeAuthToken = async () => {
   const token = await SecureStore.getItemAsync("authToken");
   if (token) {
     setAuthToken(token);
+  }
+};
+
+// isTokenExpired проверяет срок действия токена
+export const isTokenExpired = (token) => {
+  try {
+    const decoded = jwtDecode(token);
+    if (decoded.exp) {
+      const currentTime = Math.floor(Date.now() / 1000);
+      return decoded.exp < currentTime;
+    }
+    return true;
+  } catch (error) {
+    console.error("Ошибка при проверке истечения токена:", error);
+    return true; // Если произошла ошибка, считаем, что токен истек
   }
 };
 

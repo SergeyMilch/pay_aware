@@ -3,6 +3,7 @@ import { View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import * as SecureStore from "expo-secure-store";
+import * as Linking from "expo-linking";
 import LoginScreen from "../screens/LoginScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import SubscriptionListScreen from "../screens/SubscriptionListScreen";
@@ -11,7 +12,7 @@ import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import EditSubscriptionScreen from "../screens/EditSubscriptionScreen";
 import SubscriptionDetailScreen from "../screens/SubscriptionDetailScreen";
-import { initializeAuthToken, getUserById } from "../api/api";
+import { initializeAuthToken, getUserById, isTokenExpired } from "../api/api";
 import { navigationRef } from "./navigationService";
 import logger from "../utils/logger";
 
@@ -22,16 +23,34 @@ const AppNavigator = () => {
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
+    const checkInitialUrl = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl) {
+        const data = Linking.parse(initialUrl);
+        if (data.path === "reset-password" && data.queryParams?.token) {
+          logger.log(
+            "Приложение открыто через универсальную ссылку, перенаправляем на ResetPasswordScreen"
+          );
+          navigationRef.current?.navigate("ResetPasswordScreen", {
+            token: data.queryParams.token,
+          });
+        }
+      }
+    };
+
     const checkUserStatus = async () => {
       try {
-        // Инициализируем токен авторизации
         await initializeAuthToken();
         const token = await SecureStore.getItemAsync("authToken");
         const userId = await SecureStore.getItemAsync("userId");
 
         if (token && userId) {
-          // Проверяем, существует ли пользователь с данным userId
-          await verifyUserExists(userId);
+          if (isTokenExpired(token)) {
+            logger.warn("JWT токен истек, перенаправляем на экран логина");
+            setInitialRoute("Login");
+          } else {
+            await verifyUserExists(userId);
+          }
         } else {
           logger.warn(
             "Токен или userId отсутствуют, перенаправляем на регистрацию"
@@ -66,7 +85,12 @@ const AppNavigator = () => {
       }
     };
 
-    checkUserStatus();
+    const initializeApp = async () => {
+      await checkInitialUrl(); // Проверяем начальный URL
+      await checkUserStatus(); // Проверяем статус пользователя
+    };
+
+    initializeApp();
   }, []);
 
   if (isCheckingAuth) {
@@ -95,8 +119,8 @@ const AppNavigator = () => {
           component={SubscriptionListScreen}
           options={{
             title: "Список подписок",
-            headerLeft: null, // Убираем кнопку назад на экране списка подписок
-            gestureEnabled: false, // Отключаем жест назад
+            headerLeft: null,
+            gestureEnabled: false,
           }}
         />
         <Stack.Screen
