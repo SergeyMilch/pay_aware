@@ -65,7 +65,7 @@ const App = () => {
             }
           }
         } else {
-          // Если нет токена или userId, перенаправляем на регистрацию
+          // Если нет токена и userId, перенаправляем на регистрацию
           logger.warn(
             "Токен или userId отсутствуют, перенаправляем на регистрацию"
           );
@@ -115,12 +115,25 @@ const App = () => {
     // Добавление слушателя для глубоких ссылок, когда приложение уже открыто
     const handleDeepLink = (event) => {
       const data = Linking.parse(event.url);
-      if (data.path === "reset-password" && data.queryParams?.token) {
-        logger.log("Получена глубокая ссылка для сброса пароля после открытия");
-        setInitialRoute({
-          name: "ResetPasswordScreen",
-          params: { token: data.queryParams.token },
-        });
+      const cleanPath = data.path.startsWith("/")
+        ? data.path.substring(1)
+        : data.path;
+      if (cleanPath === "reset-password") {
+        if (data.queryParams?.token) {
+          logger.log(
+            "Получена глубокая ссылка для сброса пароля после открытия"
+          );
+          setInitialRoute({
+            name: "ResetPasswordScreen",
+            params: { token: data.queryParams.token },
+          });
+        } else {
+          logger.error("Ошибка: Токен отсутствует в параметрах запроса");
+          Alert.alert(
+            "Ошибка",
+            "Некорректная ссылка для сброса пароля. Попробуйте снова."
+          );
+        }
       }
     };
 
@@ -129,6 +142,7 @@ const App = () => {
     return () => {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
+
       linkingListener.remove();
     };
   }, []);
