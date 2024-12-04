@@ -159,6 +159,11 @@ func UpdateSubscription(c *gin.Context) {
     db.RedisClient.Del(context.Background(), redisKey)
     logger.Debug("Deleted subscriptions cache after updating a subscription", "userID", userIDInt)
 
+    // Удаляем кэш уведомления для данной подписки после обновления
+    notificationCacheKey := fmt.Sprintf("notification_sent:subscription:%d", existingSubscription.ID)
+    db.RedisClient.Del(context.Background(), notificationCacheKey)
+    logger.Debug("Deleted notification cache after updating a subscription", "subscriptionID", existingSubscription.ID)
+
     logger.Debug("Subscription updated successfully", "subscriptionID", existingSubscription.ID, "userID", userIDInt)
 
     // Возвращаем всю структуру подписки
