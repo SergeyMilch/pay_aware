@@ -19,7 +19,7 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 	ctx := context.Background()
 
 	// Запускаем CRON-задачу каждые 15 минут
-	_, err := c.AddFunc("*/15 * * * *", func() {
+	_, err := c.AddFunc("*/5 * * * *", func() {
 		var subscriptions []models.Subscription
 		currentTime := time.Now().UTC()
 		nextCheckTime := currentTime.Add(15 * time.Minute)

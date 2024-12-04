@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar"; // Импортируем компонент StatusBar
 import * as Notifications from "expo-notifications";
 import AppNavigator from "./src/navigation/AppNavigator";
 import {
@@ -64,6 +65,10 @@ const App = () => {
               setInitialRoute("Register");
             }
           }
+        } else if (userId) {
+          // Если токен отсутствует, но userId существует, перенаправляем на логин
+          logger.warn("Токен отсутствует, перенаправляем на экран логина");
+          setInitialRoute("Login");
         } else {
           // Если нет токена и userId, перенаправляем на регистрацию
           logger.warn(
@@ -170,7 +175,12 @@ const App = () => {
     );
   }
 
-  return <AppNavigator initialRoute={initialRoute} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <StatusBar style="auto" />
+      <AppNavigator initialRoute={initialRoute} />
+    </View>
+  );
 };
 
 export default App;

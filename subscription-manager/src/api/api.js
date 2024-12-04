@@ -63,10 +63,9 @@ export const initializeApi = () => {
 
         if (status === 401 && data.error === "Token has expired") {
           try {
-            await SecureStore.deleteItemAsync("authToken");
-            await SecureStore.deleteItemAsync("userId");
+            await SecureStore.deleteItemAsync("authToken"); // Удаляем только токен, оставляем userId
           } catch (error) {
-            logger.error("Ошибка при удалении токенов из SecureStore:", error);
+            logger.error("Ошибка при удалении токена из SecureStore:", error);
           }
 
           Alert.alert(
