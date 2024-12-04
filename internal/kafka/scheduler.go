@@ -62,13 +62,12 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 					}
 
 					// Кэшируем информацию об отправленном уведомлении
-					err = db.RedisClient.Set(ctx, cacheKey, "sent", time.Hour*24).Err() // Устанавливаем кэш на 24 часа
+					err = db.RedisClient.Set(ctx, cacheKey, "sent", time.Until(subscription.NextPaymentDate)).Err()
 					if err != nil {
 						logger.Warn("Failed to set cache for notification", "subscriptionID", subscription.ID, "error", err)
 					} else {
 						logger.Debug("Notification cached successfully", "subscriptionID", subscription.ID)
 					}
-					
 					logger.Info("Notification sent and cached", "subscriptionID", subscription.ID)
 				}
 			}

@@ -7,6 +7,7 @@ import (
 	"github.com/SergeyMilch/pay_aware/internal/logger"
 	"github.com/SergeyMilch/pay_aware/pkg/db"
 	"github.com/SergeyMilch/pay_aware/pkg/models"
+	"golang.org/x/exp/rand"
 )
 
 // ProcessKafkaMessage обрабатывает сообщения из Kafka и отправляет уведомления
@@ -40,20 +41,28 @@ func ProcessKafkaMessage(notification models.Notification) {
     // Сформировать сообщение с названием подписки
     message := fmt.Sprintf("Не забудьте оплатить подписку на %s!", subscription.ServiceName)
 
-    // Отправка push-уведомления
-    if err := SendPushNotification(user.DeviceToken, message); err != nil {
-        logger.Error("Не удалось отправить уведомление", "userID", user.ID, "error", err)
-        // Сохраняем неудачную отправку
-        notification.Status = "failed"
-    } else {
-        logger.Info("Push notification sent successfully", "userID", user.ID, "subscriptionID", subscription.ID)
-        // Сохраняем успешную отправку
-        notification.Status = "success"
-        notification.SentAt = time.Now().UTC()
-    }
+    // Добавляем случайную задержку (джиттер) перед отправкой уведомления
+    jitter := time.Duration(rand.Intn(120)) * time.Second
+    logger.Debug("Adding jitter before sending notification", "subscriptionID", subscription.ID, "jitter", jitter)
 
-    // Сохраняем факт отправки уведомления в базу данных
-    if err := db.GormDB.Create(&notification).Error; err != nil {
-        logger.Error("Не удалось сохранить уведомление в БД", "userID", user.ID, "error", err)
-    }
+    // Используем time.AfterFunc для вызова функции с задержкой
+    time.AfterFunc(jitter, func() {
+        // Отправка push-уведомления
+        if err := SendPushNotification(user.DeviceToken, message); err != nil {
+            logger.Error("Не удалось отправить уведомление", "userID", user.ID, "error", err)
+            // Сохраняем неудачную отправку
+            notification.Status = "failed"
+        } else {
+            logger.Info("Push notification sent successfully", "userID", user.ID, "subscriptionID", subscription.ID)
+            // Сохраняем успешную отправку
+            notification.Status = "success"
+            notification.SentAt = time.Now().UTC()
+        }
+
+        // Сохраняем факт отправки уведомления в базу данных
+        if err := db.GormDB.Create(&notification).Error; err != nil {
+            logger.Error("Не удалось сохранить уведомление в БД", "userID", user.ID, "error", err)
+        }
+    })
 }
+
