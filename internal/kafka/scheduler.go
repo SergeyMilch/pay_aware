@@ -25,7 +25,7 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 		nextCheckTime := currentTime.Add(15 * time.Minute)
 
 		// Ищем подписки, для которых необходимо отправить уведомление в ближайшие 15 минут
-		db.GormDB.Where("next_payment_date BETWEEN ? AND ?", currentTime, nextCheckTime).Find(&subscriptions)
+		db.GormDB.Where("notification_date BETWEEN ? AND ?", currentTime, nextCheckTime).Find(&subscriptions)
 
 		for _, subscription := range subscriptions {
 			if subscription.NotificationOffset == 0 {
@@ -33,7 +33,8 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 			}
 
 			notificationTime := subscription.NextPaymentDate.Add(-time.Duration(subscription.NotificationOffset) * time.Minute)
-			if notificationTime.Before(nextCheckTime) && notificationTime.After(currentTime) {
+			if notificationTime.Before(nextCheckTime) && notificationTime.After(currentTime) ||
+   				notificationTime.Equal(currentTime) || notificationTime.Equal(nextCheckTime)  {
 				cacheKey := fmt.Sprintf("notification_sent:subscription:%d", subscription.ID)
 				// Проверяем, не отправлено ли уже уведомление для этой подписки
 				if _, err := db.RedisClient.Get(ctx, cacheKey).Result(); err == redis.Nil {
