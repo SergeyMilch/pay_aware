@@ -150,7 +150,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   };
 
   const handleConfirm = (date) => {
-    setNextPaymentDate(date);
+    setNextPaymentDate(date); // Сохраняем объект Date напрямую
     hideDatePicker();
   };
 
@@ -175,7 +175,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       <TouchableOpacity onPress={showDatePicker}>
         <TextInput
           style={styles.input}
-          value={nextPaymentDate.toDateString()}
+          value={nextPaymentDate ? nextPaymentDate.toLocaleDateString() : ""}
           placeholder="Выберите дату следующего платежа"
           editable={false}
         />

@@ -129,7 +129,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={showDatePicker}>
           <TextInput
             style={styles.input}
-            value={nextPaymentDate}
+            value={new Date(nextPaymentDate).toLocaleDateString()} // Преобразование в локальное время
             placeholder="Дата следующего платежа"
             editable={false}
           />
