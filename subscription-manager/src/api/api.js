@@ -15,21 +15,16 @@ const api = axios.create({
   },
 });
 
-// Функция для добавления/удаления токена авторизации в заголовки
-export const setAuthToken = (token) => {
-  if (token) {
-    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common["Authorization"];
-  }
-};
-
 // Устанавливаем токен из SecureStore при запуске приложения
 export const initializeAuthToken = async () => {
   try {
+    logger.log("Начинаем инициализацию токена авторизации из SecureStore");
     const token = await SecureStore.getItemAsync("authToken");
     if (token) {
       setAuthToken(token);
+      logger.log("Токен успешно установлен из SecureStore:", token);
+    } else {
+      logger.warn("Токен не найден в SecureStore");
     }
   } catch (error) {
     logger.error("Ошибка при инициализации токена авторизации:", error);
@@ -37,18 +32,114 @@ export const initializeAuthToken = async () => {
   }
 };
 
+// Функция для добавления/удаления токена авторизации в заголовки
+export const setAuthToken = (token) => {
+  if (token) {
+    logger.log("Устанавливаем токен авторизации в заголовки:", token);
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+  } else {
+    logger.warn("Удаляем токен авторизации из заголовков");
+    delete api.defaults.headers.common["Authorization"];
+  }
+};
+
 // isTokenExpired проверяет срок действия токена
 export const isTokenExpired = (token) => {
   try {
+    logger.log("Начало проверки срока действия токена");
     const decoded = jwtDecode(token);
     if (decoded.exp) {
       const currentTime = Math.floor(Date.now() / 1000);
-      return decoded.exp < currentTime;
+      const isExpired = decoded.exp < currentTime;
+      if (isExpired) {
+        logger.warn(
+          "Токен истек. Время истечения:",
+          decoded.exp,
+          "Текущее время:",
+          currentTime
+        );
+      } else {
+        logger.log(
+          "Токен действителен. Время истечения:",
+          decoded.exp,
+          "Текущее время:",
+          currentTime
+        );
+      }
+      return isExpired;
+    } else {
+      logger.warn("В токене отсутствует поле exp, считаем, что он истек");
+      return true;
     }
-    return true;
   } catch (error) {
     logger.error("Ошибка при проверке истечения токена:", error);
     return true; // Если произошла ошибка, считаем, что токен истек
+  }
+};
+
+// Функция для проверки токена и навигации
+export const checkTokenAndNavigate = async (setInitialRoute) => {
+  try {
+    logger.log("Начало проверки токена и навигации");
+
+    const token = await SecureStore.getItemAsync("authToken");
+    const userId = await SecureStore.getItemAsync("userId");
+    const pinCode = await SecureStore.getItemAsync("pinCode");
+
+    if (token) {
+      logger.log("Токен успешно восстановлен из SecureStore:", token);
+    } else {
+      logger.warn("Токен не найден в SecureStore");
+    }
+
+    if (userId) {
+      logger.log("UserId успешно восстановлен из SecureStore:", userId);
+    } else {
+      logger.warn("UserId не найден в SecureStore");
+    }
+
+    if (pinCode) {
+      logger.log("ПИН-код найден в SecureStore");
+    } else {
+      logger.warn("ПИН-код отсутствует в SecureStore");
+    }
+
+    if (token && userId) {
+      if (isTokenExpired(token)) {
+        // Если токен истек, перенаправляем на экран ввода ПИН-кода
+        logger.warn("JWT токен истек, перенаправляем на экран ввода ПИН-кода");
+        setInitialRoute("EnterPinScreen");
+      } else {
+        // Если токен действителен, проверяем наличие пользователя
+        logger.log("JWT токен действителен, проверяем пользователя");
+        const user = await getUserById(userId);
+        if (user) {
+          // Пользователь найден, переходим на экран списка подписок
+          logger.log("Пользователь найден, перенаправляем на экран подписок");
+          setInitialRoute("SubscriptionList");
+        } else {
+          // Если пользователь не найден, перенаправляем на регистрацию
+          logger.warn("Пользователь не найден, перенаправляем на регистрацию");
+          setInitialRoute("Register");
+        }
+      }
+    } else if (userId && pinCode) {
+      // Если токен отсутствует, но userId и ПИН-код существуют, перенаправляем на экран ввода ПИН-кода
+      logger.warn(
+        "Токен отсутствует, но userId и ПИН-код существуют, перенаправляем на экран ввода ПИН-кода"
+      );
+      setInitialRoute("EnterPinScreen");
+    } else {
+      // Если нет токена, userId и ПИН-кода, перенаправляем на регистрацию
+      logger.warn(
+        "Токен, userId и ПИН-код отсутствуют, перенаправляем на регистрацию"
+      );
+      setInitialRoute("Register");
+    }
+  } catch (error) {
+    logger.error("Ошибка при проверке токена и навигации:", error);
+    crashlytics().recordError(error);
+    setInitialRoute("Register");
   }
 };
 
@@ -61,22 +152,31 @@ export const initializeApi = () => {
       if (response) {
         const { status, data } = response;
 
+        logger.warn("Ошибка при выполнении запроса:", {
+          status,
+          data,
+        });
+
         if (status === 401 && data.error === "Token has expired") {
           try {
-            await SecureStore.deleteItemAsync("authToken"); // Удаляем только токен, оставляем userId
+            await SecureStore.deleteItemAsync("authToken");
+            logger.log("Токен авторизации удален из SecureStore (истек)");
           } catch (error) {
             logger.error("Ошибка при удалении токена из SecureStore:", error);
           }
 
           Alert.alert(
             "Сессия истекла",
-            "Ваша сессия истекла, пожалуйста, войдите снова.",
+            "Ваша сессия истекла, пожалуйста, введите ПИН-код.",
             [
               {
                 text: "OK",
                 onPress: () => {
                   if (navigationRef.isReady()) {
-                    navigationRef.navigate("Login");
+                    logger.log(
+                      "Переход на экран ввода ПИН-кода после истечения токена"
+                    );
+                    navigationRef.navigate("EnterPinScreen");
                   }
                 },
               },
@@ -84,19 +184,20 @@ export const initializeApi = () => {
           );
           return Promise.reject(new Error("SessionExpired"));
         } else if (status === 409) {
-          logger.warn("Ошибка при регистрации пользователя:", error);
+          logger.warn("Конфликт при выполнении запроса (409):", error);
         } else {
           logger.error("Ошибка от сервера:", error);
         }
       } else if (error.code === "ECONNABORTED") {
         logger.warn("Ошибка таймаута запроса:", error);
       } else if (!error.response && error.message.includes("Network Error")) {
+        logger.error("Ошибка сети:", error);
         Alert.alert(
           "Ошибка сети",
           "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
         );
       } else {
-        logger.warn("Неизвестная ошибка:", error);
+        logger.warn("Неизвестная ошибка при выполнении запроса:", error);
       }
       return Promise.reject(error);
     }
@@ -114,7 +215,7 @@ export const registerUser = async (credentials) => {
 
     if (token && user_id) {
       try {
-        logger.log("Сохраняем токен и user_id...");
+        logger.log("Сохраняем токен и user_id в SecureStore...");
         await SecureStore.setItemAsync("authToken", token);
         await SecureStore.setItemAsync("userId", user_id.toString());
         setAuthToken(token);
@@ -124,6 +225,7 @@ export const registerUser = async (credentials) => {
       }
 
       if (navigationRef.isReady()) {
+        logger.log("Переход на экран подписок после успешной регистрации");
         navigationRef.navigate("SubscriptionList");
       }
     } else {
@@ -135,14 +237,8 @@ export const registerUser = async (credentials) => {
     }
     return response.data;
   } catch (error) {
-    if (error.message.includes("Network Error")) {
-      Alert.alert(
-        "Ошибка сети",
-        "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
-      );
-    } else {
-      handleRegistrationError(error);
-    }
+    logger.error("Ошибка при отправке запроса на регистрацию:", error);
+    handleRegistrationError(error);
     throw error;
   }
 };
@@ -158,7 +254,7 @@ export const loginUser = async (credentials) => {
 
     if (token && user_id) {
       try {
-        logger.log("Сохраняем токен и user_id...");
+        logger.log("Сохраняем токен и user_id в SecureStore...");
         await SecureStore.setItemAsync("authToken", token);
         await SecureStore.setItemAsync("userId", user_id.toString());
         setAuthToken(token);
@@ -168,6 +264,7 @@ export const loginUser = async (credentials) => {
       }
 
       if (navigationRef.isReady()) {
+        logger.log("Переход на экран подписок после успешного логина");
         navigationRef.navigate("SubscriptionList");
       }
     } else {
@@ -179,31 +276,82 @@ export const loginUser = async (credentials) => {
     }
     return response.data;
   } catch (error) {
-    if (error.message.includes("Network Error")) {
-      Alert.alert(
-        "Ошибка сети",
-        "Не удалось подключиться к серверу. Проверьте подключение к интернету и попробуйте снова."
-      );
+    logger.error("Ошибка при отправке запроса на логин:", error);
+    handleLoginError(error);
+    throw error;
+  }
+};
+
+export const setPin = async (userId, pin) => {
+  try {
+    logger.log("Отправляем запрос на установку ПИН-кода...");
+    const response = await api.post("/set-pin", {
+      user_id: userId,
+      pin_code: pin, // Исправлено имя поля
+    });
+    return response.data;
+  } catch (error) {
+    logger.error("Ошибка при установке ПИН-кода:", error);
+    throw error;
+  }
+};
+
+// Функция для логина пользователя с пин
+export const loginWithPin = async (userId, pin) => {
+  try {
+    logger.log("Отправляем запрос на логин через ПИН-код...");
+    const response = await api.post("/users/login-with-pin", {
+      user_id: userId,
+      pinCode: pin,
+    });
+
+    const { token } = response.data || {};
+
+    if (token) {
+      try {
+        logger.log("Сохраняем новый токен в SecureStore...");
+        await SecureStore.setItemAsync("authToken", token);
+        setAuthToken(token);
+        logger.log("Токен авторизации обновлён.");
+      } catch (error) {
+        logger.error("Ошибка при сохранении токена:", error);
+      }
+
+      if (navigationRef.isReady()) {
+        logger.log("Переход на экран подписок после успешного входа");
+        navigationRef.navigate("SubscriptionList");
+      }
     } else {
-      handleLoginError(error);
+      logger.error(
+        "Некорректный ответ от сервера при входе через ПИН-код:",
+        response
+      );
+      throw new Error("Не удалось войти. Проверьте данные.");
     }
+    return response.data;
+  } catch (error) {
+    logger.error("Ошибка при логине через ПИН-код:", error);
     throw error;
   }
 };
 
 // Обработка ошибок при регистрации
 const handleRegistrationError = (error) => {
+  logger.error("Обработка ошибки при регистрации пользователя:", error);
   if (error.response?.status === 409) {
     Alert.alert(
       "Пользователь уже зарегистрирован",
       "Этот email уже занят. Пожалуйста, войдите с вашими данными.",
       [
-        { text: "Отмена", style: "cancel" }, // Кнопка "Отмена" будет слева
+        { text: "Отмена", style: "cancel" },
         {
-          text: "Войти", // Кнопка "Войти" будет справа
+          text: "Войти",
           onPress: () => {
             setTimeout(() => {
               if (navigationRef.isReady()) {
+                logger.log(
+                  "Переход на экран логина после обнаружения существующего пользователя"
+                );
                 navigationRef.navigate("Login");
               }
             }, 0);
@@ -212,12 +360,14 @@ const handleRegistrationError = (error) => {
       ]
     );
   } else if (error.response?.status === 401) {
+    logger.warn("Ошибка при регистрации: Неавторизованное действие (401)");
     setTimeout(() => {
       if (navigationRef.isReady()) {
         navigationRef.navigate("Login");
       }
     }, 0);
   } else {
+    logger.warn("Ошибка при регистрации пользователя:", error);
     Alert.alert(
       "Ошибка",
       "Ошибка при регистрации. Пожалуйста, попробуйте снова."
@@ -227,21 +377,27 @@ const handleRegistrationError = (error) => {
 
 // Обработка ошибок при логине
 const handleLoginError = (error) => {
+  logger.error("Обработка ошибки при логине пользователя:", error);
   if (error.response?.status === 401) {
     Alert.alert("Ошибка входа", "Неправильный email или пароль.");
   } else if (error.response?.status === 404) {
+    logger.warn("Ошибка при логине: пользователь не найден (404)");
     Alert.alert("Пользователь не найден", "Хотите создать новый аккаунт?", [
       { text: "Отмена", style: "cancel" },
       {
         text: "Зарегистрироваться",
         onPress: () => {
           if (navigationRef.isReady()) {
+            logger.log(
+              "Переход на экран регистрации после отсутствия пользователя"
+            );
             navigationRef.navigate("Register");
           }
         },
       },
     ]);
   } else {
+    logger.error("Неизвестная ошибка при логине:", error);
     Alert.alert("Ошибка", "Ошибка при входе. Пожалуйста, попробуйте снова.");
   }
 };
@@ -330,10 +486,26 @@ export const requestPasswordReset = async (email) => {
 
 // Запрос на сброс пароля
 export const resetPassword = async (token, newPassword) => {
-  const response = await fetch(`${API_URL}/reset-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, new_password: newPassword }),
-  });
-  return response;
+  try {
+    const response = await fetch(`${API_URL}/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, new_password: newPassword }),
+    });
+
+    if (response.ok) {
+      logger.log("Пароль успешно сброшен, переход на экран логина");
+      await SecureStore.deleteItemAsync("pinCode"); // Удаляем старый ПИН-код
+      if (navigationRef.isReady()) {
+        navigationRef.navigate("Login");
+      }
+    } else {
+      const errorData = await response.json();
+      logger.error("Ошибка при сбросе пароля с сервера:", errorData.error);
+      Alert.alert("Ошибка", errorData.error || "Не удалось сбросить пароль.");
+    }
+  } catch (error) {
+    logger.error("Ошибка при сбросе пароля:", error);
+    Alert.alert("Ошибка", "Произошла ошибка. Попробуйте позже.");
+  }
 };

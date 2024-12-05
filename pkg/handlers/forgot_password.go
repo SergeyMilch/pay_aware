@@ -87,13 +87,16 @@ func ResetPassword(c *gin.Context) {
     }
 
     // Обновляем пароль в базе данных
-    if err := db.GormDB.Model(&models.User{}).Where("id = ?", userID).Update("password", hashedPassword).Error; err != nil {
+    if err := db.GormDB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+        "password": hashedPassword,
+        "pin_code": nil, // Удаляем старый ПИН-код
+    }).Error; err != nil {
         logger.Error("Failed to update password", "error", err)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset password"})
         return
     }
 
-    c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+    c.JSON(http.StatusOK, gin.H{"message": "Password reset successful, please set up your new PIN code."})
 }
 
 func PasswordResetRedirect(c *gin.Context) {

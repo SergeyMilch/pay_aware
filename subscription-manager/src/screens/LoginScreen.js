@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,37 +8,57 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { loginUser } from "../api/api";
+import { loginUser, checkTokenAndNavigate } from "../api/api";
 import {
   registerForPushNotificationsAsync,
   sendDeviceTokenToServer,
 } from "../utils/notifications";
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger"; // Импорт логгера
+import * as SecureStore from "expo-secure-store";
+import crashlytics from "@react-native-firebase/crashlytics";
 
 const LoginScreen = ({ navigation }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const initializeNavigation = async () => {
+      logger.log("Проверяем токен и перенаправляем, если необходимо");
+      await checkTokenAndNavigate(setInitialRoute);
+    };
+
+    initializeNavigation();
+  }, []);
+
   const handleInputChange = (name, value) => {
     setCredentials((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleLogin = async () => {
-    if (isLoading) return;
+    if (isLoading) {
+      logger.warn("Логин уже выполняется, повторный вызов отменен");
+      return;
+    }
 
+    logger.log("Начало процесса логина");
+
+    // Валидация полей
     if (!credentials.email.trim() || !credentials.password.trim()) {
+      logger.warn("Поля для логина не заполнены");
       Alert.alert("Ошибка", "Пожалуйста, заполните все поля.");
       return;
     }
 
     if (!IsValidEmail(credentials.email)) {
+      logger.warn("Неверный формат email при логине:", credentials.email);
       Alert.alert("Ошибка", "Неверный формат email.");
       return;
     }
 
     if (!IsValidPassword(credentials.password)) {
+      logger.warn("Пароль не соответствует требованиям безопасности");
       Alert.alert(
         "Ошибка",
         "Пароль должен содержать как минимум 6 символов, включая заглавные и строчные буквы, цифры и специальные символы."
@@ -50,17 +70,32 @@ const LoginScreen = ({ navigation }) => {
     setError("");
 
     try {
+      logger.log("Отправляем запрос на сервер для логина");
       const response = await loginUser(credentials, navigation.navigate);
 
       if (response && response.token && response.user_id) {
         logger.log("Пользователь успешно вошел в систему");
 
+        // Сохраняем токен и user_id
+        try {
+          logger.log("Сохраняем токен и user_id в SecureStore");
+          await SecureStore.setItemAsync("authToken", response.token);
+          await SecureStore.setItemAsync("userId", response.user_id.toString());
+          setAuthToken(response.token);
+        } catch (error) {
+          logger.error("Ошибка при сохранении токена или userId:", error);
+        }
+
         // Регистрируем и отправляем токен устройства на сервер
+        logger.log(
+          "Начинаем регистрацию токена устройства для push-уведомлений"
+        );
         const deviceToken = await registerForPushNotificationsAsync();
         if (deviceToken) {
+          logger.log("Токен устройства получен:", deviceToken);
           try {
             await sendDeviceTokenToServer(deviceToken);
-            logger.log("Device token обновлен успешно");
+            logger.log("Токен устройства успешно отправлен на сервер");
           } catch (err) {
             logger.error(
               "Не удалось обновить токен устройства на сервере:",
@@ -75,9 +110,25 @@ const LoginScreen = ({ navigation }) => {
           );
         }
 
-        navigation.navigate("SubscriptionList");
+        // Проверка наличия ПИН-кода
+        const savedPin = await SecureStore.getItemAsync("pinCode");
+        if (!savedPin) {
+          logger.warn(
+            "ПИН-код отсутствует, перенаправляем на экран установки ПИН-кода"
+          );
+          Alert.alert(
+            "Установка ПИН-кода",
+            "Для упрощения доступа к приложению и обеспечения безопасности, пожалуйста, установите ПИН-код. Это позволит вам входить в приложение быстро и удобно."
+          );
+          navigation.navigate("SetPinScreen");
+        } else {
+          logger.log(
+            "ПИН-код уже установлен, переход на экран списка подписок"
+          );
+          navigation.navigate("SubscriptionList");
+        }
       } else {
-        logger.error("Некорректный ответ от сервера:", response);
+        logger.error("Некорректный ответ от сервера при логине:", response);
         setError("Ошибка при входе в систему. Пожалуйста, попробуйте снова.");
       }
     } catch (error) {
@@ -85,7 +136,14 @@ const LoginScreen = ({ navigation }) => {
       setError("Ошибка при входе в систему. Пожалуйста, попробуйте снова.");
     } finally {
       setIsLoading(false);
+      logger.log("Процесс логина завершен");
     }
+  };
+
+  // Функция для принудительного сбоя для тестирования Crashlytics
+  const triggerCrash = () => {
+    crashlytics().log("Пользователь вызвал принудительный сбой приложения");
+    crashlytics().crash(); // Принудительный вызов сбоя приложения
   };
 
   return (
@@ -118,6 +176,7 @@ const LoginScreen = ({ navigation }) => {
       <View style={{ marginTop: 20 }}>
         <TouchableOpacity
           onPress={() => {
+            logger.log("Переход на экран восстановления пароля");
             navigation.navigate("ForgotPasswordScreen");
           }}
         >
@@ -126,6 +185,11 @@ const LoginScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Кнопка для вызова принудительного сбоя */}
+      <TouchableOpacity style={styles.crashButton} onPress={triggerCrash}>
+        <Text style={styles.buttonText}>Принудительный Сбой</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -153,6 +217,13 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 4,
     alignItems: "center",
+  },
+  crashButton: {
+    backgroundColor: "#FF0000",
+    padding: 12,
+    borderRadius: 4,
+    alignItems: "center",
+    marginTop: 20,
   },
   buttonText: {
     color: "#fff",

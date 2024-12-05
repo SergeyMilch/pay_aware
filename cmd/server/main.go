@@ -79,6 +79,7 @@ func main() {
 	r.POST("/forgot-password", handlers.ForgotPassword)
     r.POST("/reset-password", handlers.ResetPassword)
 	r.GET("/reset-password", handlers.PasswordResetRedirect)
+	r.POST("/login-with-pin", handlers.LoginWithPin)
 
 	// Защищенные маршруты
 	authorized := r.Group("/")
@@ -94,6 +95,7 @@ func main() {
 		authorized.GET("/subscriptions", handlers.GetSubscriptions)
 		authorized.GET("/subscriptions/:id", handlers.GetSubscriptionByID)
 		authorized.PUT("/users/device-token", handlers.UpdateDeviceToken)
+		authorized.POST("/set-pin", handlers.SetPin)
 		// При больших нагрузках на клиент, можно будет перейти на серверный подход
 		// authorized.GET("/subscriptions/total-cost", handlers.GetTotalCost)   <-- расчет общей стоимости реализован на фронтенде
 	}

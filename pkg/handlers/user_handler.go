@@ -75,7 +75,7 @@ func CreateUser(c *gin.Context) {
 
         // Возвращаем результат при успешном создании
         c.JSON(http.StatusCreated, gin.H{
-            "message": "User created successfully",
+            "message": "User created successfully, please set up your PIN code.",
             "token":   token,
             "user_id": user.ID,
         })
@@ -271,4 +271,104 @@ func LoginUser(c *gin.Context) {
 		"token":   token,
 		"user_id": user.ID, // Добавляем user_id в ответ
 	})
+}
+
+// SetPin для установки или изменения ПИН-кода
+func SetPin(c *gin.Context) {
+    userID, exists := c.Get("userID")
+    if !exists {
+        logger.Warn("User ID is missing in context")
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    // Проверка типа userID
+    userIDInt, ok := userID.(int)
+    if !ok {
+        logger.Error("Invalid user ID type in context")
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+        return
+    }
+
+    logger.Debug("Received request to set PIN", "userID", userIDInt)
+
+    var request struct {
+        PinCode string `json:"pin_code"`
+    }
+
+    if err := c.ShouldBindJSON(&request); err != nil {
+        logger.Warn("Invalid PIN code request", "error", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+        return
+    }
+
+    if len(request.PinCode) != 4 {
+        logger.Warn("Invalid PIN code length", "userID", userIDInt)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "PIN code must be 4 digits"})
+        return
+    }
+
+    // Хэшируем ПИН-код
+    hashedPin, err := utils.HashPassword(request.PinCode)
+    if err != nil {
+        logger.Error("Failed to hash PIN code", "userID", userIDInt, "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set PIN code"})
+        return
+    }
+
+    // Обновляем ПИН-код в базе данных
+    if err := db.GormDB.Model(&models.User{}).Where("id = ?", userIDInt).Update("pin_code", hashedPin).Error; err != nil {
+        logger.Error("Failed to update PIN code", "userID", userIDInt, "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to set PIN code"})
+        return
+    }
+
+    logger.Debug("PIN code set successfully", "userID", userIDInt)
+    c.JSON(http.StatusOK, gin.H{"message": "PIN code set successfully"})
+}
+
+// LoginWithPin для входа с ПИН-кодом
+func LoginWithPin(c *gin.Context) {
+    logger.Debug("Received login request with PIN")
+
+    var request struct {
+        UserID  int    `json:"user_id"`
+        PinCode string `json:"pin_code"`
+    }
+
+    if err := c.ShouldBindJSON(&request); err != nil {
+        logger.Warn("Invalid login request with PIN data", "error", err)
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+        return
+    }
+
+    // Найти пользователя по ID
+    var user models.User
+    if err := db.GormDB.First(&user, request.UserID).Error; err != nil {
+        logger.Warn("Invalid login attempt - user not found", "user_id", request.UserID)
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID or PIN"})
+        return
+    }
+
+    // Проверить ПИН-код
+    if !utils.CheckPasswordHash(request.PinCode, user.PinCode) {
+        logger.Warn("Invalid login attempt - incorrect PIN", "user_id", request.UserID)
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID or PIN"})
+        return
+    }
+
+    // Генерируем JWT токен
+    cfg := config.LoadConfig()
+    token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 20*time.Minute)
+    if err != nil {
+        logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+        return
+    }
+
+    logger.Debug("User logged in successfully with PIN", "userID", user.ID)
+    c.JSON(http.StatusOK, gin.H{
+        "token":   token,
+        "user_id": user.ID,
+    })
 }

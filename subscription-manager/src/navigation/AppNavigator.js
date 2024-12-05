@@ -9,13 +9,28 @@ import ForgotPasswordScreen from "../screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "../screens/ResetPasswordScreen";
 import EditSubscriptionScreen from "../screens/EditSubscriptionScreen";
 import SubscriptionDetailScreen from "../screens/SubscriptionDetailScreen";
+import SetPinScreen from "../screens/SetPinScreen"; // Добавляем экран для установки ПИН-кода
+import EnterPinScreen from "../screens/EnterPinScreen"; // Добавляем экран для ввода ПИН-кода
 import { navigationRef } from "./navigationService";
+import logger from "../utils/logger";
 
 const Stack = createStackNavigator();
 
 const AppNavigator = ({ initialRoute }) => {
+  // Логируем начальный маршрут, переданный в компонент
+  logger.log("Начальный маршрут в AppNavigator:", initialRoute);
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        logger.log("Навигация готова, текущий экран:", initialRoute);
+      }}
+      onStateChange={(state) => {
+        const currentScreen = state.routes[state.index].name;
+        logger.log("Текущий экран после изменения состояния:", currentScreen);
+      }}
+    >
       <Stack.Navigator
         initialRouteName={
           typeof initialRoute === "string" ? initialRoute : initialRoute?.name
@@ -30,6 +45,16 @@ const AppNavigator = ({ initialRoute }) => {
           name="Login"
           component={LoginScreen}
           options={{ title: "Вход" }}
+        />
+        <Stack.Screen
+          name="SetPinScreen"
+          component={SetPinScreen}
+          options={{ title: "Установка ПИН-кода" }}
+        />
+        <Stack.Screen
+          name="EnterPinScreen"
+          component={EnterPinScreen}
+          options={{ title: "Введите ПИН-код" }}
         />
         <Stack.Screen
           name="SubscriptionList"

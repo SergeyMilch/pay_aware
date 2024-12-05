@@ -27,8 +27,10 @@ const SubscriptionListScreen = () => {
 
   const fetchSubscriptions = async () => {
     try {
+      logger.log("Начало загрузки подписок");
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
+        logger.warn("Токен отсутствует, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
         return;
@@ -36,11 +38,15 @@ const SubscriptionListScreen = () => {
 
       setLoading(true);
       const data = await getSubscriptions();
-      logger.log("Полученные подписки:", data);
+      logger.log(
+        "Подписки успешно загружены. Количество подписок:",
+        data.length
+      );
       setSubscriptions(data);
       calculateTotalCost(data);
     } catch (error) {
       if (error.message === "SessionExpired") {
+        logger.warn("Сессия истекла, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
       } else {
@@ -48,24 +54,30 @@ const SubscriptionListScreen = () => {
       }
     } finally {
       setLoading(false);
+      logger.log("Загрузка подписок завершена");
     }
   };
 
   const calculateTotalCost = (subscriptions) => {
+    logger.log("Начинаем расчет общей стоимости подписок");
     const cost = subscriptions.reduce((sum, subscription) => {
       return sum + (subscription.cost || 0);
     }, 0);
     setTotalCost(cost);
+    logger.log("Общая стоимость подписок:", cost);
   };
 
   useEffect(() => {
     const initializeData = async () => {
       try {
+        logger.log("Инициализация данных и проверка токена");
         const token = await SecureStore.getItemAsync("authToken");
         if (token) {
+          logger.log("Токен найден, инициализация API с токеном");
           initializeAuthToken(token);
-          fetchSubscriptions();
+          await fetchSubscriptions();
         } else {
+          logger.warn("Токен не найден, перенаправляем на экран логина");
           if (navigationRef.isReady()) {
             navigationRef.navigate("Login");
           }
@@ -82,13 +94,15 @@ const SubscriptionListScreen = () => {
 
   const handleDelete = async (id) => {
     if (!id) {
-      logger.error("Идентификатор подписки отсутствует");
+      logger.error("Идентификатор подписки отсутствует, удаление невозможно");
       return;
     }
 
     try {
+      logger.log(`Попытка удалить подписку с ID: ${id}`);
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
+        logger.warn("Токен отсутствует, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         if (navigationRef.isReady()) {
           navigationRef.navigate("Login");
@@ -105,8 +119,10 @@ const SubscriptionListScreen = () => {
   };
 
   const handleAddSubscription = async () => {
+    logger.log("Переход на экран создания подписки");
     const token = await SecureStore.getItemAsync("authToken");
     if (!token) {
+      logger.warn("Токен отсутствует, перенаправляем на экран логина");
       Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
       if (navigationRef.isReady()) {
         navigationRef.navigate("Login");
@@ -147,12 +163,15 @@ const SubscriptionListScreen = () => {
           return (
             <View style={styles.subscriptionItem}>
               <TouchableOpacity
-                onPress={() =>
+                onPress={() => {
+                  logger.log(
+                    `Переход на экран деталей подписки с ID: ${item.ID}`
+                  );
                   navigationRef.isReady() &&
-                  navigationRef.navigate("SubscriptionDetail", {
-                    subscription: item,
-                  })
-                }
+                    navigationRef.navigate("SubscriptionDetail", {
+                      subscription: item,
+                    });
+                }}
                 style={styles.subscriptionDetails}
               >
                 <View style={styles.subscriptionInfoContainer}>
@@ -173,12 +192,15 @@ const SubscriptionListScreen = () => {
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={[styles.button, styles.editButton]}
-                  onPress={() =>
+                  onPress={() => {
+                    logger.log(
+                      `Переход на экран редактирования подписки с ID: ${item.ID}`
+                    );
                     navigationRef.isReady() &&
-                    navigationRef.navigate("EditSubscription", {
-                      subscriptionId: item.ID,
-                    })
-                  }
+                      navigationRef.navigate("EditSubscription", {
+                        subscriptionId: item.ID,
+                      });
+                  }}
                 >
                   <Text style={styles.buttonText}>Редактировать</Text>
                 </TouchableOpacity>

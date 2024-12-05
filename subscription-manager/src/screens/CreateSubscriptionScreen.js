@@ -33,19 +33,27 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   // Проверка токена при загрузке экрана
   useEffect(() => {
     const checkToken = async () => {
+      logger.log("Начало проверки наличия токена авторизации...");
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
+        logger.warn("Токен отсутствует, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
+      } else {
+        logger.log("Токен авторизации успешно найден");
       }
     };
     checkToken();
   }, []);
 
   const handlePriceChange = (text) => {
+    logger.log("Пользователь изменяет стоимость подписки");
     const formattedText = text.replace(",", ".");
     if (isValidPrice(formattedText)) {
       setPrice(formattedText);
+      logger.log("Стоимость подписки успешно обновлена:", formattedText);
+    } else {
+      logger.warn("Некорректная стоимость подписки:", formattedText);
     }
   };
 
@@ -55,11 +63,16 @@ const CreateSubscriptionScreen = ({ navigation }) => {
     const deviceToken = await registerForPushNotificationsAsync();
 
     if (deviceToken) {
-      logger.log("Получен токен устройства.");
+      logger.log("Получен токен устройства:", deviceToken);
       setDeviceToken(deviceToken);
-      await sendDeviceTokenToServer(deviceToken);
-      logger.log("Токен устройства успешно отправлен на сервер.");
+      try {
+        await sendDeviceTokenToServer(deviceToken);
+        logger.log("Токен устройства успешно отправлен на сервер.");
+      } catch (error) {
+        logger.error("Ошибка при отправке токена устройства на сервер:", error);
+      }
       setNotificationOffset(offset);
+      logger.log("Напоминание установлено за:", offset, "минут");
     } else {
       logger.warn(
         "Не удалось получить разрешение на push-уведомления. Пожалуйста, включите уведомления в настройках."
@@ -77,11 +90,13 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
+    logger.log("Начало создания подписки...");
     setLoading(true);
     setError("");
 
     // Проверка входных данных перед отправкой
     if (!isValidName(name)) {
+      logger.warn("Некорректное название подписки:", name);
       setError("Название подписки содержит недопустимые символы.");
       setLoading(false);
       return;
@@ -89,12 +104,16 @@ const CreateSubscriptionScreen = ({ navigation }) => {
 
     const parsedPrice = parseFloat(parseFloat(price).toFixed(2));
     if (isNaN(parsedPrice)) {
+      logger.warn("Некорректная стоимость подписки:", price);
       setError("Введите корректную стоимость подписки.");
       setLoading(false);
       return;
     }
 
     if (notificationOffset !== null && !deviceToken) {
+      logger.warn(
+        "Пользователь пытается создать подписку с напоминанием без включенных уведомлений"
+      );
       setError(
         "Для установки напоминания необходимо включить уведомления. Пожалуйста, проверьте настройки устройства."
       );
@@ -106,6 +125,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       // Проверка токена перед отправкой
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
+        logger.warn("Токен отсутствует, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
         return;
@@ -125,11 +145,12 @@ const CreateSubscriptionScreen = ({ navigation }) => {
           navigation.goBack();
         }, 500);
       } else {
-        setError("Не удалось создать подписку. Попробуйте еще раз.");
         logger.warn("Ответ от сервера не содержит ID подписки:", response);
+        setError("Не удалось создать подписку. Попробуйте еще раз.");
       }
     } catch (error) {
       if (error.message === "SessionExpired") {
+        logger.warn("Сессия истекла, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
       } else {
@@ -138,18 +159,22 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       }
     } finally {
       setLoading(false);
+      logger.log("Процесс создания подписки завершен");
     }
   };
 
   const showDatePicker = () => {
+    logger.log("Показать выбор даты");
     setDatePickerVisibility(true);
   };
 
   const hideDatePicker = () => {
+    logger.log("Скрыть выбор даты");
     setDatePickerVisibility(false);
   };
 
   const handleConfirm = (date) => {
+    logger.log("Дата следующего платежа выбрана:", date);
     setNextPaymentDate(date); // Сохраняем объект Date напрямую
     hideDatePicker();
   };
@@ -160,7 +185,10 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         value={name}
-        onChangeText={setName}
+        onChangeText={(value) => {
+          logger.log("Пользователь изменяет название подписки");
+          setName(value);
+        }}
         placeholder="Введите название подписки"
       />
       <Text style={styles.label}>Стоимость</Text>
