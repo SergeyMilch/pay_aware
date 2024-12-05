@@ -76,10 +76,10 @@ func main() {
 	// Публичные маршруты
 	r.POST("/users", handlers.CreateUser)
 	r.POST("/users/login", handlers.LoginUser)
+	r.POST("/users/login-with-pin", handlers.LoginWithPin)
 	r.POST("/forgot-password", handlers.ForgotPassword)
     r.POST("/reset-password", handlers.ResetPassword)
 	r.GET("/reset-password", handlers.PasswordResetRedirect)
-	r.POST("/login-with-pin", handlers.LoginWithPin)
 
 	// Защищенные маршруты
 	authorized := r.Group("/")

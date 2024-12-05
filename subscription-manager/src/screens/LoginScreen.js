@@ -16,7 +16,6 @@ import {
 import { IsValidEmail, IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger"; // Импорт логгера
 import * as SecureStore from "expo-secure-store";
-import crashlytics from "@react-native-firebase/crashlytics";
 
 const LoginScreen = ({ navigation }) => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -140,12 +139,6 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  // Функция для принудительного сбоя для тестирования Crashlytics
-  const triggerCrash = () => {
-    crashlytics().log("Пользователь вызвал принудительный сбой приложения");
-    crashlytics().crash(); // Принудительный вызов сбоя приложения
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Вход в систему</Text>
@@ -185,11 +178,6 @@ const LoginScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* Кнопка для вызова принудительного сбоя */}
-      <TouchableOpacity style={styles.crashButton} onPress={triggerCrash}>
-        <Text style={styles.buttonText}>Принудительный Сбой</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -217,13 +205,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 4,
     alignItems: "center",
-  },
-  crashButton: {
-    backgroundColor: "#FF0000",
-    padding: 12,
-    borderRadius: 4,
-    alignItems: "center",
-    marginTop: 20,
   },
   buttonText: {
     color: "#fff",

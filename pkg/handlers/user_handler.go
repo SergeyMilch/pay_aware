@@ -338,6 +338,7 @@ func LoginWithPin(c *gin.Context) {
 
     if err := c.ShouldBindJSON(&request); err != nil {
         logger.Warn("Invalid login request with PIN data", "error", err)
+        logger.Debug("request", "request", request)
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
         return
     }

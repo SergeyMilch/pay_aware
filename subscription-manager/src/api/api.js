@@ -47,10 +47,17 @@ export const setAuthToken = (token) => {
 export const isTokenExpired = (token) => {
   try {
     logger.log("Начало проверки срока действия токена");
+
+    // Декодируем токен и логируем его
     const decoded = jwtDecode(token);
+    logger.log("Декодированный токен:", decoded);
+
+    // Проверяем наличие поля "exp"
     if (decoded.exp) {
       const currentTime = Math.floor(Date.now() / 1000);
       const isExpired = decoded.exp < currentTime;
+
+      // Логируем время и результат проверки
       if (isExpired) {
         logger.warn(
           "Токен истек. Время истечения:",
@@ -66,6 +73,7 @@ export const isTokenExpired = (token) => {
           currentTime
         );
       }
+
       return isExpired;
     } else {
       logger.warn("В токене отсутствует поле exp, считаем, что он истек");
@@ -302,7 +310,7 @@ export const loginWithPin = async (userId, pin) => {
     logger.log("Отправляем запрос на логин через ПИН-код...");
     const response = await api.post("/users/login-with-pin", {
       user_id: userId,
-      pinCode: pin,
+      pin_code: pin, // Исправлено имя поля
     });
 
     const { token } = response.data || {};

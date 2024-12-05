@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { StatusBar } from "expo-status-bar"; // Импортируем компонент StatusBar
+import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import AppNavigator from "./src/navigation/AppNavigator";
 import { initializeApi, checkTokenAndNavigate } from "./src/api/api";
 import { Alert, View, Text, AppState } from "react-native";
 import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
-import * as Linking from "expo-linking"; // Импортируем Linking для работы с глубокими ссылками
-import crashlytics from "@react-native-firebase/crashlytics"; // Импортируем Crashlytics
+import * as Linking from "expo-linking";
 
 // Подавление глобальных ошибок в Expo
 if (!__DEV__) {
@@ -17,20 +16,13 @@ if (!__DEV__) {
       ? `Фатальная ошибка: ${error.message}\n${error.stack}`
       : `Ошибка: ${error.message}\n${error.stack}`;
 
-    // Отправляем лог в Crashlytics
-    crashlytics().log(errorMessage);
-
-    // Сообщаем о сбое в Crashlytics
-    crashlytics().recordError(error);
+    logger.error(errorMessage);
 
     if (isFatal) {
-      logger.error("Произошла фатальная ошибка:", error);
       Alert.alert(
         "Ошибка",
         "Произошла непредвиденная ошибка. Пожалуйста, перезапустите приложение."
       );
-    } else {
-      logger.error("Произошла ошибка:", error);
     }
 
     // Вызываем стандартный обработчик ошибок
@@ -77,7 +69,6 @@ const App = () => {
         logger.log("Инициализация приложения завершена успешно");
       } catch (error) {
         logger.error("Ошибка при инициализации приложения:", error);
-        crashlytics().recordError(error);
         setInitialRoute("Register");
       } finally {
         setIsInitializing(false);
@@ -131,7 +122,6 @@ const App = () => {
         }
       } catch (error) {
         logger.error("Ошибка при обработке глубокой ссылки:", error);
-        crashlytics().recordError(error);
       }
     };
 
@@ -145,13 +135,16 @@ const App = () => {
       }
     };
 
-    AppState.addEventListener("change", handleAppStateChange);
+    const appStateListener = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
 
     return () => {
       Notifications.removeNotificationSubscription(notificationListener);
       Notifications.removeNotificationSubscription(responseListener);
       linkingListener.remove();
-      AppState.removeEventListener("change", handleAppStateChange);
+      appStateListener.remove(); // Удаление обработчика состояния приложения
     };
   }, []);
 
@@ -186,6 +179,16 @@ const App = () => {
 
     getPermissions();
   }, []);
+
+  // Устанавливаем значение по умолчанию для initialRoute, если оно не установлено
+  useEffect(() => {
+    if (!initialRoute) {
+      logger.warn(
+        "initialRoute не установлен. Устанавливаем значение по умолчанию."
+      );
+      setInitialRoute("Register");
+    }
+  }, [initialRoute]);
 
   if (isInitializing || !initialRoute) {
     return (

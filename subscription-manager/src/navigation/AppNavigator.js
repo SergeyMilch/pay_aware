@@ -33,7 +33,9 @@ const AppNavigator = ({ initialRoute }) => {
     >
       <Stack.Navigator
         initialRouteName={
-          typeof initialRoute === "string" ? initialRoute : initialRoute?.name
+          typeof initialRoute === "string"
+            ? initialRoute
+            : initialRoute?.name || "Register"
         }
       >
         <Stack.Screen
