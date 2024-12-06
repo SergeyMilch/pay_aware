@@ -106,7 +106,21 @@ func PasswordResetRedirect(c *gin.Context) {
         return
     }
 
-    // Формируем deep link для приложения
-    appLink := fmt.Sprintf("payawareapp://reset-password?token=%s", token)
-    c.Redirect(http.StatusTemporaryRedirect, appLink)
+    // Генерация HTML-страницы с кастомной схемой
+    htmlContent := fmt.Sprintf(`
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Сброс пароля</title>
+        </head>
+        <body>
+            <p>Чтобы сбросить пароль, нажмите на ссылку ниже:</p>
+            <a href="payawareapp://reset-password?token=%s">Сбросить пароль</a>
+        </body>
+        </html>
+    `, token)
+
+    c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 }

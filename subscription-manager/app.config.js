@@ -20,6 +20,7 @@ export default {
     },
     android: {
       package: "com.pushkin85.mil.subscriptionmanager",
+      enableHermes: true,
       googleServicesFile:
         process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
       adaptiveIcon: {
