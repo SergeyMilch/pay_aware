@@ -87,8 +87,11 @@ const App = () => {
         const data = Linking.parse(event.url);
         logger.log("Распознанные данные из ссылки:", data);
 
-        // Проверяем точное совпадение пути для сброса пароля
-        if (data.path === "/reset-password") {
+        // Проверка, если путь или хост являются "reset-password"
+        if (
+          data?.path === "reset-password" ||
+          data?.hostname === "reset-password"
+        ) {
           if (data.queryParams?.token) {
             logger.log(
               "Получена глубокая ссылка для сброса пароля после открытия"
@@ -152,8 +155,17 @@ const App = () => {
   useEffect(() => {
     if (deepLinkParams && navigationRef.isReady()) {
       logger.log("Навигация с использованием глубокой ссылки:", deepLinkParams);
-      navigationRef.navigate(deepLinkParams.name, deepLinkParams.params);
-      setDeepLinkParams(null); // Очищаем состояние после навигации
+      try {
+        navigationRef.navigate(deepLinkParams.name, deepLinkParams.params);
+        setDeepLinkParams(null); // Очищаем состояние после навигации
+      } catch (error) {
+        logger.error(
+          "Ошибка при навигации с использованием глубокой ссылки:",
+          error
+        );
+      }
+    } else if (deepLinkParams && !navigationRef.isReady()) {
+      logger.warn("Навигация не готова, ожидаем...");
     }
   }, [deepLinkParams, isInitializing]);
 

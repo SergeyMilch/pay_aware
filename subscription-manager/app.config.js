@@ -37,8 +37,8 @@ export default {
               pathPrefix: "/reset-password",
             },
             {
-              scheme: "payawareapp", // добавляем кастомную схему приложения
-              pathPrefix: "/reset-password",
+              scheme: "payawareapp",
+              host: "reset-password",
             },
           ],
           category: ["BROWSABLE", "DEFAULT"],
