@@ -86,12 +86,17 @@ const SetPinScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
   },
   input: {
     borderWidth: 1,
     padding: 8,
     marginVertical: 16,
+    width: "80%",
+    textAlign: "center",
   },
 });
 

@@ -1,5 +1,4 @@
 import axios from "axios";
-import jwtDecode from "jwt-decode";
 import * as SecureStore from "expo-secure-store";
 import { Alert } from "react-native";
 import logger from "../utils/logger";
@@ -21,8 +20,8 @@ export const initializeAuthToken = async () => {
     logger.log("Начинаем инициализацию токена авторизации из SecureStore");
     const token = await SecureStore.getItemAsync("authToken");
     if (token) {
-      setAuthToken(token);
-      logger.log("Токен успешно установлен из SecureStore:", token);
+      logger.log("Токен успешно восстановлен из SecureStore:", token);
+      setAuthToken(token); // Устанавливаем токен в заголовки запросов
     } else {
       logger.warn("Токен не найден в SecureStore");
     }
@@ -40,48 +39,6 @@ export const setAuthToken = (token) => {
   } else {
     logger.warn("Удаляем токен авторизации из заголовков");
     delete api.defaults.headers.common["Authorization"];
-  }
-};
-
-// isTokenExpired проверяет срок действия токена
-export const isTokenExpired = (token) => {
-  try {
-    logger.log("Начало проверки срока действия токена");
-
-    // Декодируем токен и логируем его
-    const decoded = jwtDecode(token);
-    logger.log("Декодированный токен:", decoded);
-
-    // Проверяем наличие поля "exp"
-    if (decoded.exp) {
-      const currentTime = Math.floor(Date.now() / 1000);
-      const isExpired = decoded.exp < currentTime;
-
-      // Логируем время и результат проверки
-      if (isExpired) {
-        logger.warn(
-          "Токен истек. Время истечения:",
-          decoded.exp,
-          "Текущее время:",
-          currentTime
-        );
-      } else {
-        logger.log(
-          "Токен действителен. Время истечения:",
-          decoded.exp,
-          "Текущее время:",
-          currentTime
-        );
-      }
-
-      return isExpired;
-    } else {
-      logger.warn("В токене отсутствует поле exp, считаем, что он истек");
-      return true;
-    }
-  } catch (error) {
-    logger.error("Ошибка при проверке истечения токена:", error);
-    return true; // Если произошла ошибка, считаем, что токен истек
   }
 };
 
@@ -113,32 +70,26 @@ export const checkTokenAndNavigate = async (setInitialRoute) => {
     }
 
     if (token && userId) {
-      if (isTokenExpired(token)) {
-        // Если токен истек, перенаправляем на экран ввода ПИН-кода
-        logger.warn("JWT токен истек, перенаправляем на экран ввода ПИН-кода");
+      // Пытаемся получить пользователя с токеном в заголовке
+      const user = await getUserById(userId);
+      if (user) {
+        logger.log("Пользователь найден, перенаправляем на экран подписок");
+        setInitialRoute("SubscriptionList");
+      } else if (pinCode) {
+        logger.warn(
+          "Пользователь не найден, но ПИН-код существует, перенаправляем на экран ввода ПИН-кода"
+        );
         setInitialRoute("EnterPinScreen");
       } else {
-        // Если токен действителен, проверяем наличие пользователя
-        logger.log("JWT токен действителен, проверяем пользователя");
-        const user = await getUserById(userId);
-        if (user) {
-          // Пользователь найден, переходим на экран списка подписок
-          logger.log("Пользователь найден, перенаправляем на экран подписок");
-          setInitialRoute("SubscriptionList");
-        } else {
-          // Если пользователь не найден, перенаправляем на регистрацию
-          logger.warn("Пользователь не найден, перенаправляем на регистрацию");
-          setInitialRoute("Register");
-        }
+        logger.warn("Пользователь не найден, перенаправляем на регистрацию");
+        setInitialRoute("Register");
       }
     } else if (userId && pinCode) {
-      // Если токен отсутствует, но userId и ПИН-код существуют, перенаправляем на экран ввода ПИН-кода
       logger.warn(
         "Токен отсутствует, но userId и ПИН-код существуют, перенаправляем на экран ввода ПИН-кода"
       );
       setInitialRoute("EnterPinScreen");
     } else {
-      // Если нет токена, userId и ПИН-кода, перенаправляем на регистрацию
       logger.warn(
         "Токен, userId и ПИН-код отсутствуют, перенаправляем на регистрацию"
       );
@@ -146,7 +97,6 @@ export const checkTokenAndNavigate = async (setInitialRoute) => {
     }
   } catch (error) {
     logger.error("Ошибка при проверке токена и навигации:", error);
-    crashlytics().recordError(error);
     setInitialRoute("Register");
   }
 };
@@ -173,6 +123,7 @@ export const initializeApi = () => {
             logger.error("Ошибка при удалении токена из SecureStore:", error);
           }
 
+          // Переход на экран ввода ПИН-кода
           Alert.alert(
             "Сессия истекла",
             "Ваша сессия истекла, пожалуйста, введите ПИН-код.",
@@ -191,8 +142,6 @@ export const initializeApi = () => {
             ]
           );
           return Promise.reject(new Error("SessionExpired"));
-        } else if (status === 409) {
-          logger.warn("Конфликт при выполнении запроса (409):", error);
         } else {
           logger.error("Ошибка от сервера:", error);
         }
@@ -294,7 +243,7 @@ export const setPin = async (userId, pin) => {
   try {
     logger.log("Отправляем запрос на установку ПИН-кода...");
     const response = await api.post("/set-pin", {
-      user_id: userId,
+      user_id: Number(userId),
       pin_code: pin, // Исправлено имя поля
     });
     return response.data;
@@ -309,7 +258,7 @@ export const loginWithPin = async (userId, pin) => {
   try {
     logger.log("Отправляем запрос на логин через ПИН-код...");
     const response = await api.post("/users/login-with-pin", {
-      user_id: userId,
+      user_id: Number(userId),
       pin_code: pin, // Исправлено имя поля
     });
 

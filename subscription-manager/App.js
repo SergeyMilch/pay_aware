@@ -2,37 +2,21 @@ import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import AppNavigator from "./src/navigation/AppNavigator";
-import { initializeApi, checkTokenAndNavigate } from "./src/api/api";
+import {
+  initializeApi,
+  checkTokenAndNavigate,
+  initializeAuthToken,
+} from "./src/api/api";
 import { Alert, View, Text, AppState } from "react-native";
 import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import * as Linking from "expo-linking";
-
-// Подавление глобальных ошибок в Expo
-if (!__DEV__) {
-  const defaultHandler = ErrorUtils.getGlobalHandler();
-  ErrorUtils.setGlobalHandler((error, isFatal) => {
-    const errorMessage = isFatal
-      ? `Фатальная ошибка: ${error.message}\n${error.stack}`
-      : `Ошибка: ${error.message}\n${error.stack}`;
-
-    logger.error(errorMessage);
-
-    if (isFatal) {
-      Alert.alert(
-        "Ошибка",
-        "Произошла непредвиденная ошибка. Пожалуйста, перезапустите приложение."
-      );
-    }
-
-    // Вызываем стандартный обработчик ошибок
-    defaultHandler(error, isFatal);
-  });
-}
+import { navigationRef } from "./src/navigation/navigationService";
 
 const App = () => {
   const [initialRoute, setInitialRoute] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [deepLinkParams, setDeepLinkParams] = useState(null);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -42,6 +26,9 @@ const App = () => {
         // Инициализация API
         initializeApi();
         logger.log("API успешно инициализирован");
+
+        // Устанавливаем токен из SecureStore
+        await initializeAuthToken();
 
         // Проверка токена и навигация
         await checkTokenAndNavigate(setInitialRoute);
@@ -100,15 +87,15 @@ const App = () => {
         const data = Linking.parse(event.url);
         logger.log("Распознанные данные из ссылки:", data);
 
-        const cleanPath = data.path.startsWith("/")
-          ? data.path.substring(1)
-          : data.path;
-        if (cleanPath === "reset-password") {
+        // Проверяем точное совпадение пути для сброса пароля
+        if (data.path === "/reset-password") {
           if (data.queryParams?.token) {
             logger.log(
               "Получена глубокая ссылка для сброса пароля после открытия"
             );
-            setInitialRoute({
+
+            // Сохраняем параметры для дальнейшей навигации
+            setDeepLinkParams({
               name: "ResetPasswordScreen",
               params: { token: data.queryParams.token },
             });
@@ -119,9 +106,12 @@ const App = () => {
               "Некорректная ссылка для сброса пароля. Попробуйте снова."
             );
           }
+        } else {
+          logger.warn("Неизвестный путь в глубокой ссылке:", data.path);
         }
       } catch (error) {
         logger.error("Ошибка при обработке глубокой ссылки:", error);
+        Alert.alert("Ошибка", "Произошла ошибка при обработке ссылки.");
       }
     };
 
@@ -148,38 +138,6 @@ const App = () => {
     };
   }, []);
 
-  // Добавляем setInterval для проверки токена каждые 15 минут (900000 миллисекунд)
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      logger.log("Периодическая проверка токена...");
-      checkTokenAndNavigate(setInitialRoute);
-    }, 900000); // 15 минут
-
-    // Очистка при размонтировании компонента
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, []);
-
-  // Проверка разрешений на уведомления
-  useEffect(() => {
-    const getPermissions = async () => {
-      logger.log("Запрос разрешений на отправку уведомлений");
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") {
-        logger.warn("Уведомления не разрешены пользователем");
-        Alert.alert(
-          "Уведомления не разрешены",
-          "Пожалуйста, включите уведомления в настройках."
-        );
-      } else {
-        logger.log("Разрешения на уведомления получены");
-      }
-    };
-
-    getPermissions();
-  }, []);
-
   // Устанавливаем значение по умолчанию для initialRoute, если оно не установлено
   useEffect(() => {
     if (!initialRoute) {
@@ -189,6 +147,15 @@ const App = () => {
       setInitialRoute("Register");
     }
   }, [initialRoute]);
+
+  // Выполняем навигацию после полной инициализации, если есть параметры из глубокой ссылки
+  useEffect(() => {
+    if (deepLinkParams && navigationRef.isReady()) {
+      logger.log("Навигация с использованием глубокой ссылки:", deepLinkParams);
+      navigationRef.navigate(deepLinkParams.name, deepLinkParams.params);
+      setDeepLinkParams(null); // Очищаем состояние после навигации
+    }
+  }, [deepLinkParams, isInitializing]);
 
   if (isInitializing || !initialRoute) {
     return (

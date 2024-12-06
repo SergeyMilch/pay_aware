@@ -1,10 +1,19 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  Alert,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { requestPasswordReset } from "../api/api";
 import logger from "../utils/logger"; // Импорт логгера
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePasswordReset = async () => {
     logger.log("Начало процесса восстановления пароля");
@@ -15,6 +24,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
       return;
     }
 
+    setIsLoading(true);
     try {
       logger.log("Отправка запроса на восстановление пароля для email:", email);
       const response = await requestPasswordReset(email);
@@ -45,6 +55,8 @@ const ForgotPasswordScreen = ({ navigation }) => {
         error
       );
       Alert.alert("Ошибка", "Произошла ошибка. Попробуйте позже.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,7 +73,15 @@ const ForgotPasswordScreen = ({ navigation }) => {
         }}
         keyboardType="email-address"
       />
-      <Button title="Сбросить пароль" onPress={handlePasswordReset} />
+      {isLoading ? (
+        <ActivityIndicator size="large" color="#0000ff" />
+      ) : (
+        <Button
+          title="Сбросить пароль"
+          onPress={handlePasswordReset}
+          disabled={isLoading}
+        />
+      )}
     </View>
   );
 };

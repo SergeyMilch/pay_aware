@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
-import { checkTokenAndNavigate, loginWithPin } from "../api/api"; // Импорт функции loginWithPin
+import { checkTokenAndNavigate, loginWithPin } from "../api/api";
 
 const EnterPinScreen = ({ navigation }) => {
   const [pinValue, setPinValue] = useState("");
@@ -19,7 +19,6 @@ const EnterPinScreen = ({ navigation }) => {
     const checkPinAvailability = async () => {
       logger.log("Начало проверки наличия ПИН-кода");
 
-      // Проверка истечения токена
       await checkTokenAndNavigate(setInitialRoute);
 
       try {
@@ -69,22 +68,24 @@ const EnterPinScreen = ({ navigation }) => {
     );
 
     try {
-      // Удаляем ПИН-код из SecureStore
       await SecureStore.deleteItemAsync("pinCode");
       logger.log("ПИН-код успешно удалён");
 
-      // Вызов эндпоинта для сброса ПИН-кода на сервере
-      const userId = await SecureStore.getItemAsync("userId");
-      if (!userId) {
-        logger.error("Ошибка: Не удалось получить userId");
-        Alert.alert("Ошибка", "Произошла ошибка. Попробуйте снова.");
-        return;
-      }
-
-      logger.log(
-        "Перенаправляем пользователя на экран Login (для установки нового ПИН-кода)"
+      Alert.alert(
+        "Информация",
+        "Для установки нового ПИН-кода необходимо ввести ваш email и пароль.",
+        [
+          {
+            text: "ОК",
+            onPress: () => {
+              logger.log(
+                "Перенаправляем пользователя на экран Login (для установки нового ПИН-кода)"
+              );
+              navigation.navigate("Login");
+            },
+          },
+        ]
       );
-      navigation.navigate("Login");
     } catch (error) {
       logger.error("Ошибка при удалении ПИН-кода:", error);
       Alert.alert("Ошибка", "Не удалось сбросить ПИН-код. Попробуйте снова.");
@@ -93,7 +94,7 @@ const EnterPinScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text>Введите ПИН-код (4 цифры):</Text>
+      <Text style={styles.title}>Введите ПИН-код (4 цифры):</Text>
       <TextInput
         value={pinValue}
         onChangeText={(value) => {
@@ -107,7 +108,6 @@ const EnterPinScreen = ({ navigation }) => {
       />
       <Button title="Войти" onPress={handleEnterPin} />
 
-      {/* Кнопка для восстановления ПИН-кода */}
       <TouchableOpacity
         onPress={handleForgotPin}
         style={styles.forgotPinButton}
@@ -120,12 +120,21 @@ const EnterPinScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
+  },
+  title: {
+    fontSize: 20,
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
     padding: 8,
     marginVertical: 16,
+    width: "80%",
+    textAlign: "center",
   },
   forgotPinButton: {
     marginTop: 16,
