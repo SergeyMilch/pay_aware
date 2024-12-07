@@ -64,8 +64,9 @@ func ResetPassword(c *gin.Context) {
         NewPassword string `json:"new_password"`
     }
 
+    // Парсим JSON-запрос
     if err := c.ShouldBindJSON(&request); err != nil {
-        logger.Warn("Invalid reset password request", "error", err)
+        logger.Warn("Invalid reset password request", "error", err, "body", c.Request.Body)
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
         return
     }
@@ -73,7 +74,7 @@ func ResetPassword(c *gin.Context) {
     // Проверяем токен
     userID, err := auth.ValidateResetToken(request.Token)
     if err != nil {
-        logger.Warn("Invalid or expired token", "error", err)
+        logger.Warn("Invalid or expired token", "error", err, "token", request.Token)
         c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
         return
     }
@@ -86,18 +87,26 @@ func ResetPassword(c *gin.Context) {
         return
     }
 
-    // Обновляем пароль в базе данных
-    if err := db.GormDB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+    // Обновляем пароль и очищаем PIN-код
+    result := db.GormDB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
         "password": hashedPassword,
-        "pin_code": nil, // Удаляем старый ПИН-код
-    }).Error; err != nil {
-        logger.Error("Failed to update password", "error", err)
+        "pin_code": nil,
+    })
+    if result.Error != nil {
+        logger.Error("Failed to update password", "error", result.Error)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reset password"})
         return
     }
+    if result.RowsAffected == 0 {
+        logger.Warn("No rows updated, user not found", "userID", userID)
+        c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+        return
+    }
 
-    c.JSON(http.StatusOK, gin.H{"message": "Password reset successful, please set up your new PIN code."})
+    logger.Info("Password reset successful for user", "userID", userID)
+    c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
 }
+
 
 func PasswordResetRedirect(c *gin.Context) {
     token := c.Query("token")
@@ -106,21 +115,25 @@ func PasswordResetRedirect(c *gin.Context) {
         return
     }
 
-    // Генерация HTML-страницы с кастомной схемой
-    htmlContent := fmt.Sprintf(`
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Сброс пароля</title>
-        </head>
-        <body>
-            <p>Чтобы сбросить пароль, нажмите на ссылку ниже:</p>
-            <a href="payawareapp://reset-password?token=%s">Сбросить пароль</a>
-        </body>
-        </html>
-    `, token)
+    // Формируем deep link для приложения
+    appLink := fmt.Sprintf("payawareapp://reset-password?token=%s", token)
+    c.Redirect(http.StatusTemporaryRedirect, appLink)
 
-    c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
+    // // Генерация HTML-страницы с кастомной схемой
+    // htmlContent := fmt.Sprintf(`
+    //     <!DOCTYPE html>
+    //     <html lang="ru">
+    //     <head>
+    //         <meta charset="UTF-8">
+    //         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    //         <title>Сброс пароля</title>
+    //     </head>
+    //     <body>
+    //         <p>Чтобы сбросить пароль, нажмите на ссылку ниже:</p>
+    //         <a href="payawareapp://reset-password?token=%s">Сбросить пароль</a>
+    //     </body>
+    //     </html>
+    // `, token)
+
+    // c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(htmlContent))
 }

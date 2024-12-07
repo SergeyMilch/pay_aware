@@ -6,7 +6,7 @@ import logger from "../utils/logger"; // Импорт логгера
 
 const ResetPasswordScreen = ({ navigation, route }) => {
   const [newPassword, setNewPassword] = useState("");
-  const [token] = useState(route.params?.token || "");
+  const token = route.params?.token || "";
 
   useEffect(() => {
     if (!token) {
@@ -36,11 +36,13 @@ const ResetPasswordScreen = ({ navigation, route }) => {
 
     try {
       logger.log("Отправка запроса на сервер для сброса пароля");
-      const response = await resetPassword(token, newPassword);
-      if (response.ok) {
-        logger.log("Пароль успешно сброшен, удаление токена из SecureStore");
-        await SecureStore.deleteItemAsync("authToken");
-        await SecureStore.deleteItemAsync("userId");
+      const result = await resetPassword(token, newPassword);
+
+      if (result.success) {
+        logger.log("Пароль успешно сброшен, удаление временных данных");
+        await SecureStore.deleteItemAsync("authToken"); // Удаляем токен
+        await SecureStore.deleteItemAsync("pinCode"); // Удаляем старый ПИН-код
+        await SecureStore.deleteItemAsync("userId"); // Удаляем userId
 
         Alert.alert(
           "Успех",
@@ -56,9 +58,8 @@ const ResetPasswordScreen = ({ navigation, route }) => {
           ]
         );
       } else {
-        const errorData = await response.json();
-        logger.error("Ошибка при сбросе пароля с сервера:", errorData.error);
-        Alert.alert("Ошибка", errorData.error || "Не удалось сбросить пароль.");
+        logger.error("Ошибка сброса пароля с сервера:", result.error);
+        Alert.alert("Ошибка", result.error || "Не удалось сбросить пароль.");
       }
     } catch (error) {
       logger.error("Ошибка при сбросе пароля:", error);

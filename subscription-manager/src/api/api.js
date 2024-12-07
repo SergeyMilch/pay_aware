@@ -451,18 +451,19 @@ export const resetPassword = async (token, newPassword) => {
     });
 
     if (response.ok) {
-      logger.log("Пароль успешно сброшен, переход на экран логина");
-      await SecureStore.deleteItemAsync("pinCode"); // Удаляем старый ПИН-код
-      if (navigationRef.isReady()) {
-        navigationRef.navigate("Login");
-      }
+      logger.log("Пароль успешно сброшен.");
+      const data = await response.json(); // Предполагаем, что сервер возвращает JSON
+      return { success: true, data };
     } else {
       const errorData = await response.json();
-      logger.error("Ошибка при сбросе пароля с сервера:", errorData.error);
-      Alert.alert("Ошибка", errorData.error || "Не удалось сбросить пароль.");
+      logger.error("Ошибка при сбросе пароля:", errorData.error);
+      return {
+        success: false,
+        error: errorData.error || "Не удалось сбросить пароль.",
+      };
     }
   } catch (error) {
     logger.error("Ошибка при сбросе пароля:", error);
-    Alert.alert("Ошибка", "Произошла ошибка. Попробуйте позже.");
+    return { success: false, error: "Произошла ошибка. Попробуйте позже." };
   }
 };
