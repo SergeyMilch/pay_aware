@@ -66,8 +66,7 @@ func CreateUser(c *gin.Context) {
 
         // Генерируем JWT токен для нового пользователя
         cfg := config.LoadConfig()
-        // token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 14*24*time.Hour)
-        token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 20*time.Minute)
+        token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 7*24*time.Hour)
         if err != nil {
             logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
             return err
@@ -258,8 +257,7 @@ func LoginUser(c *gin.Context) {
 
 	// Генерируем JWT токен
 	cfg := config.LoadConfig()
-	// token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 14*24*time.Hour)
-    token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 20*time.Minute)
+	token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 7*24*time.Hour)
 	if err != nil {
 		logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
@@ -360,7 +358,7 @@ func LoginWithPin(c *gin.Context) {
 
     // Генерируем JWT токен
     cfg := config.LoadConfig()
-    token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 20*time.Minute)
+    token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 7*24*time.Hour)
     if err != nil {
         logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
         c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
