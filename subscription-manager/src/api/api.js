@@ -452,7 +452,7 @@ export const resetPassword = async (token, newPassword) => {
 
     if (response.ok) {
       logger.log("Пароль успешно сброшен.");
-      const data = await response.json(); // Предполагаем, что сервер возвращает JSON
+      const data = await response.json(); // Сервер должен возвращать JSON, мы проверяем success: true
       return { success: true, data };
     } else {
       const errorData = await response.json();

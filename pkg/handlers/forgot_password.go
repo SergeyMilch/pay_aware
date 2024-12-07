@@ -103,10 +103,13 @@ func ResetPassword(c *gin.Context) {
         return
     }
 
+    // Успешный ответ
     logger.Info("Password reset successful for user", "userID", userID)
-    c.JSON(http.StatusOK, gin.H{"message": "Password reset successful"})
+    c.JSON(http.StatusOK, gin.H{
+        "success": true,
+        "message": "Password reset successful",
+    })
 }
-
 
 func PasswordResetRedirect(c *gin.Context) {
     token := c.Query("token")
