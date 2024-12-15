@@ -8,9 +8,9 @@ import (
 
 type Notification struct {
     gorm.Model
-    UserID         int       `json:"user_id"`
-    SubscriptionID int       `json:"subscription_id"` // Внешний ключ для привязки к подписке
+    UserID         int       `json:"user_id" gorm:"index:idx_subscription_user_sentat;index:idx_user_status"`
+    SubscriptionID int       `json:"subscription_id" gorm:"index:idx_subscription_user_sentat"` // Внешний ключ для привязки к подписке
     Message        string    `json:"message"`
-    SentAt         time.Time `json:"sent_at" gorm:"type:timestamptz"` // Время отправки уведомления
-    Status         string    `json:"status"` // Статус отправки (например, "success" или "failed")
+    SentAt         time.Time `json:"sent_at" gorm:"type:timestamptz;index:idx_subscription_user_sentat"` // Время отправки уведомления
+    Status         string    `json:"status" gorm:"index:idx_user_status"` // Статус отправки (например, "success" или "failed")
 }
