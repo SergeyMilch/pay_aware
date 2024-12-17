@@ -146,9 +146,9 @@ services:
       - LOGSTASH_KEYSTORE_PASS=${LOGSTASH_KEYSTORE_PASS} # Пароль для keystore
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
-      - LOGSTASH_ENABLE_ELASTICSEARCH_OUTPUT=yes
-      - LOGSTASH_ELASTICSEARCH_HOST=
-      - LOGSTASH_ELASTICSEARCH_PORT_NUMBER=
+      - LOGSTASH_ELASTICSEARCH_HOST="" # Очистим встроенное значение
+      - LOGSTASH_ELASTICSEARCH_PORT_NUMBER=""
+      - LOGSTASH_ENABLE_ELASTICSEARCH_OUTPUT=no
     volumes:
       - /var/www/pay_aware/data/logstash.yml:/opt/bitnami/logstash/config/logstash.yml:ro
       - /var/www/pay_aware/data/logstash.keystore:/opt/bitnami/logstash/config/logstash.keystore:ro
