@@ -146,9 +146,10 @@ services:
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
-      - /var/www/pay_aware/data/logstash.keystore:/opt/bitnami/logstash/config/logstash.keystore:ro # Монтирование keystore
       - /var/www/pay_aware/data/logstash.yml:/opt/bitnami/logstash/config/logstash.yml:ro
+      - /var/www/pay_aware/data/logstash.keystore:/opt/bitnami/logstash/config/logstash.keystore:ro
       - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
+      - logstash_data:/opt/bitnami/logstash/data
     depends_on:
       - elasticsearch
     networks:
@@ -241,6 +242,7 @@ networks:
 volumes:
   postgres_data:
   es_data:
+  logstash_data:
 # Если используем ssl
 # services:
 #   postgres:
