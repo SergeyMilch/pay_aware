@@ -138,22 +138,7 @@ services:
     image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
     user: "1000:1000"
-    command: >
-      logstash -e "input {
-        tcp {
-          port => 5000
-          host => '0.0.0.0'
-          codec => json
-        }
-      }
-      output {
-        elasticsearch {
-          hosts => ['http://pay_aware_elasticsearch:9200']
-          user => '${ELASTICSEARCH_USERNAME}'
-          password => '${ELASTICSEARCH_PASSWORD}'
-        }
-        stdout { codec => rubydebug }
-      }"
+    command: logstash --path.settings /opt/bitnami/logstash/config
     env_file:
       - /var/www/pay_aware/.env
     environment:
