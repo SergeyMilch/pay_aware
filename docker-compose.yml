@@ -137,6 +137,7 @@ services:
   logstash:
     image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
+    user: "1000:1000"
     command: logstash --path.settings /opt/bitnami/logstash/config
     env_file:
       - /var/www/pay_aware/.env
