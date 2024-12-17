@@ -141,9 +141,11 @@ services:
       - /var/www/pay_aware/.env
     environment:
       - LOGSTASH_ELASTICSEARCH_URL=http://pay_aware_elasticsearch:9200
+      - LOGSTASH_KEYSTORE_PASS=${LOGSTASH_KEYSTORE_PASS} # Пароль для keystore
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
+      - /var/www/pay_aware/data:/opt/bitnami/logstash/config # Монтирование keystore
       - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
     depends_on:
       - elasticsearch
