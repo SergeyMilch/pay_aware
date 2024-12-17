@@ -103,7 +103,7 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=true # Включение аутентификации
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - ES_JAVA_OPTS=-Xms256m -Xmx256m # Ограничение использования памяти
     volumes:
       - es_data:/bitnami/elasticsearch/data
@@ -120,8 +120,8 @@ services:
       - SERVER_SSL_CERTIFICATE=/certs/fullchain.pem
       - SERVER_SSL_KEY=/certs/privkey.pem
       - ELASTICSEARCH_HOSTS=http://pay_aware_elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=${ELASTIC_USER}
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true # Обновление путей
     volumes:
@@ -139,8 +139,8 @@ services:
     container_name: pay_aware_logstash
     environment:
       - LOGSTASH_ELASTICSEARCH_URL=http://pay_aware_elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=${ELASTIC_USER}
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
+      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
       - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
     depends_on:
