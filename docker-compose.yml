@@ -150,6 +150,7 @@ services:
       - /var/www/pay_aware/data/logstash.yml:/opt/bitnami/logstash/config/logstash.yml:ro
       - /var/www/pay_aware/data/logstash.keystore:/opt/bitnami/logstash/config/logstash.keystore:ro
       - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
+      - /var/www/pay_aware/data/pipelines.yml:/opt/bitnami/logstash/config/pipelines.yml:ro
       - logstash_data:/opt/bitnami/logstash/data
     depends_on:
       - elasticsearch
