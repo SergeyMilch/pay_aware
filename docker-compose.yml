@@ -137,6 +137,7 @@ services:
   logstash:
     image: bitnami/logstash:8.2.0
     container_name: pay_aware_logstash
+    command: logstash --path.settings /opt/bitnami/logstash/config
     env_file:
       - /var/www/pay_aware/.env
     environment:
@@ -145,7 +146,8 @@ services:
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
     volumes:
-      - /var/www/pay_aware/data:/opt/bitnami/logstash/config # Монтирование keystore
+      - /var/www/pay_aware/data/logstash.keystore:/opt/bitnami/logstash/config/logstash.keystore:ro # Монтирование keystore
+      - /var/www/pay_aware/data/logstash.yml:/opt/bitnami/logstash/config/logstash.yml:ro
       - /var/www/pay_aware/logstash.conf:/bitnami/logstash/pipeline/logstash.conf:ro
     depends_on:
       - elasticsearch
