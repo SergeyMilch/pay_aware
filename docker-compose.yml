@@ -142,7 +142,6 @@ services:
     env_file:
       - /var/www/pay_aware/.env
     environment:
-      - LOGSTASH_ELASTICSEARCH_URL=http://pay_aware_elasticsearch:9200
       - LOGSTASH_KEYSTORE_PASS=${LOGSTASH_KEYSTORE_PASS} # Пароль для keystore
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
@@ -240,8 +239,6 @@ networks:
   pay_aware_network:
     name: pay_aware_network
     driver: bridge
-    aliases:
-      - elasticsearch
 
 volumes:
   postgres_data:
