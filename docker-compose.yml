@@ -108,9 +108,9 @@ services:
     volumes:
       - es_data:/bitnami/elasticsearch/data
     networks:
-      - pay_aware_network
-    aliases:
-      - elasticsearch
+      - pay_aware_network:
+          aliases:
+            - elasticsearch
     mem_limit: 1g
     mem_reservation: 512m
 
