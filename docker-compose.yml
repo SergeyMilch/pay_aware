@@ -123,7 +123,7 @@ services:
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - SERVER_BASEPATH=/kibana
-      - SERVER_REWRITEBASEPATH=true
+      - SERVER_REWRITEBASEPATH=false
       - XPACK.SPACES.ENABLED=false
     volumes:
       - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
