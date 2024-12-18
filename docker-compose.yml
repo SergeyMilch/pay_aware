@@ -124,6 +124,7 @@ services:
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true # Обновление путей
+      - XPACK.SPACES.ENABLED=false
     volumes:
       - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
       - ${SSL_KEY_PATH}:/certs/privkey.pem:ro # Путь к SSL ключу
