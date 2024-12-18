@@ -116,7 +116,7 @@ services:
     image: bitnami/kibana:8.2.0
     container_name: pay_aware_kibana
     environment:
-      - SERVER_SSL_ENABLED=true # Включение HTTPS
+      - SERVER_SSL_ENABLED=true
       - SERVER_SSL_CERTIFICATE=/certs/fullchain.pem
       - SERVER_SSL_KEY=/certs/privkey.pem
       - ELASTICSEARCH_HOSTS=http://pay_aware_elasticsearch:9200
