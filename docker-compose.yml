@@ -116,20 +116,14 @@ services:
     image: bitnami/kibana:8.2.0
     container_name: pay_aware_kibana
     environment:
-      - SERVER_SSL_ENABLED=true
-      - SERVER_SSL_CERTIFICATE=/certs/fullchain.pem
-      - SERVER_SSL_KEY=/certs/privkey.pem
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true
       - SERVER_PUBLICBASEURL=https://pay-aware.ru:444/kibana
-      - XPACK_SPACES_ENABLED=false
     volumes:
       - /var/www/pay_aware/kibana.yml:/opt/bitnami/kibana/config/kibana.yml:ro
-      - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
-      - ${SSL_KEY_PATH}:/certs/privkey.pem:ro # Путь к SSL ключу
     depends_on:
       - elasticsearch
     networks:
