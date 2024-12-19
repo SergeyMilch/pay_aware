@@ -121,7 +121,7 @@ services:
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
       - SERVER_BASEPATH=/kibana
       - SERVER_REWRITEBASEPATH=true
-      - SERVER_PUBLICBASEURL=https://pay-aware.ru:444/kibana
+      - SERVER_PUBLICBASEURL=${KIBANA_PUBLIC_URL}
     volumes:
       - /var/www/pay_aware/kibana.yml:/opt/bitnami/kibana/config/kibana.yml:ro
     depends_on:
