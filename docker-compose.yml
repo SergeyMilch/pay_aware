@@ -122,8 +122,9 @@ services:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=${ELASTICSEARCH_USERNAME}
       - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
-      # - SERVER_BASEPATH=/kibana
-      # - SERVER_REWRITEBASEPATH=false
+      - SERVER_BASEPATH=/kibana
+      - SERVER_REWRITEBASEPATH=true
+      - SERVER_PUBLICBASEURL=https://pay-aware.ru:444/kibana
       - XPACK.SPACES.ENABLED=false
     volumes:
       - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
