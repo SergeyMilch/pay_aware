@@ -2,5 +2,6 @@
 *.tar.gz
 *.tar
 ./production.log
+kibana.yml
 pay_aware
 pay-aware-firebase-key.json

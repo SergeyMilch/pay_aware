@@ -127,6 +127,7 @@ services:
       - SERVER_PUBLICBASEURL=https://pay-aware.ru:444/kibana
       - XPACK_SPACES_ENABLED=false
     volumes:
+      - ./kibana.yml:/opt/bitnami/kibana/config/kibana.yml:ro
       - ${SSL_CERT_PATH}:/certs/fullchain.pem:ro # Путь к SSL сертификатам
       - ${SSL_KEY_PATH}:/certs/privkey.pem:ro # Путь к SSL ключу
     depends_on:
