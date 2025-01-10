@@ -31,9 +31,9 @@ func main() {
 	db.InitPostgres(cfg)
 	logger.Info("Postgres initialized with GORM")
 
-	// Инициализируем подключение к базе данных с pgx
-	db.InitPgx(cfg)
-	logger.Info("Connected to the database successfully with pgx")
+	// // Инициализируем подключение к базе данных с pgx
+	// db.InitPgx(cfg)
+	// logger.Info("Connected to the database successfully with pgx")
 
 	// Инициализируем подключение к Redis
 	db.InitRedis()
