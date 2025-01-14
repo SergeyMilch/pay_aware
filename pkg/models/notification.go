@@ -13,4 +13,7 @@ type Notification struct {
     Message        string    `json:"message"`
     SentAt         time.Time `json:"sent_at" gorm:"type:timestamptz;index:idx_subscription_user_sentat"` // Время отправки уведомления
     Status         string    `json:"status" gorm:"index:idx_user_status"` // Статус отправки (например, "success" или "failed")
+    ReadAt         *time.Time `json:"read_at" gorm:"type:timestamptz;index"` // Для истории уведомлений (пометки прочитанным)
+
+    Subscription   Subscription `json:"subscription" gorm:"foreignKey:SubscriptionID"`
 }

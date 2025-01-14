@@ -69,7 +69,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         value={email}
         onChangeText={(value) => {
           logger.log("Пользователь изменяет email");
-          setEmail(value);
+          setEmail(value.toLowerCase());
         }}
         keyboardType="email-address"
       />

@@ -71,6 +71,11 @@ jobs:
           echo "Connecting to: ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}"
           rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" docker-compose.yml "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware"
 
+      # - name: Copy static files to server
+      #   if: env.deploy_backend == 'true'
+      #   run: |
+      #     rsync -avz -e "ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no" ./icon-push/push-icon.png "${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/var/www/pay_aware/icon-push/"
+
       - name: Set up backend environment variables
         if: env.deploy_backend == 'true'
         run: |
@@ -116,6 +121,7 @@ jobs:
           SMTP_USER=${{ secrets.BACKEND_SMTP_USER }}
           SMTP_PASS=${{ secrets.BACKEND_SMTP_PASS }}
           INTERNAL_ACCESS_TOKEN=${{ secrets.BACKEND_INTERNAL_ACCESS_TOKEN }}
+          ICON_PUSH_FILES_URL=${{ secrets.BACKEND_ICON_PUSH_FILES_URL }}
           EOL
           EOF
 

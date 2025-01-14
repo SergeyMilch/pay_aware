@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
 import { resetPassword } from "../api/api";
 import * as SecureStore from "expo-secure-store";
+import { IsValidPassword } from "../utils/validation";
 import logger from "../utils/logger"; // Импорт логгера
 
 const ResetPasswordScreen = ({ navigation, route }) => {
@@ -31,6 +32,16 @@ const ResetPasswordScreen = ({ navigation, route }) => {
     if (!newPassword.trim()) {
       logger.warn("Ошибка: Новый пароль не введен");
       Alert.alert("Ошибка", "Пожалуйста, введите новый пароль.");
+      return;
+    }
+
+    // Дополнительная проверка с использованием IsValidPassword
+    if (!IsValidPassword(newPassword)) {
+      logger.warn("Пароль не соответствует требованиям безопасности");
+      Alert.alert(
+        "Ошибка",
+        "Пароль должен содержать как минимум 6 символов, включая заглавные и строчные буквы, цифры и специальные символы."
+      );
       return;
     }
 

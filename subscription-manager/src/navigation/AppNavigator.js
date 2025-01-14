@@ -11,6 +11,8 @@ import EditSubscriptionScreen from "../screens/EditSubscriptionScreen";
 import SubscriptionDetailScreen from "../screens/SubscriptionDetailScreen";
 import SetPinScreen from "../screens/SetPinScreen"; // Добавляем экран для установки ПИН-кода
 import EnterPinScreen from "../screens/EnterPinScreen"; // Добавляем экран для ввода ПИН-кода
+import NotificationHistoryScreen from "../screens/NotificationHistoryScreen"; // Импорт экрана истории пуш
+import HeaderMenu from "../components/HeaderMenu"; // Импорт компонента меню
 import { navigationRef } from "./navigationService";
 import logger from "../utils/logger";
 
@@ -61,11 +63,18 @@ const AppNavigator = ({ initialRoute }) => {
         <Stack.Screen
           name="SubscriptionList"
           component={SubscriptionListScreen}
-          options={{
+          options={({ navigation }) => ({
             title: "Список подписок",
+            headerShown: true,
             headerLeft: null,
             gestureEnabled: false,
-          }}
+            headerRight: () => <HeaderMenu navigation={navigation} />,
+          })}
+        />
+        <Stack.Screen
+          name="NotificationHistory"
+          component={NotificationHistoryScreen}
+          options={{ title: "История уведомлений" }}
         />
         <Stack.Screen
           name="CreateSubscription"

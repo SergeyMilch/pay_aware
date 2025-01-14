@@ -8,6 +8,7 @@ import { API_URL } from "@env";
 // Настройка экземпляра axios с базовым URL и заголовками
 const api = axios.create({
   baseURL: API_URL,
+  // baseURL: "http://localhost:8000",
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
@@ -465,5 +466,33 @@ export const resetPassword = async (token, newPassword) => {
   } catch (error) {
     logger.error("Ошибка при сбросе пароля:", error);
     return { success: false, error: "Произошла ошибка. Попробуйте позже." };
+  }
+};
+
+// Функция для получения истории уведомлений пользователя
+export const getUserNotifications = async ({ limit = 20, offset = 0 }) => {
+  logger.log("Отправка запроса на /api/notifications", { limit, offset });
+  try {
+    const response = await api.get("/api/notifications", {
+      params: { limit, offset },
+    });
+    logger.log("Ответ от /api/notifications:", response.data);
+    return response.data;
+  } catch (error) {
+    logger.error("Ошибка при запросе /api/notifications:", error);
+    throw error;
+  }
+};
+
+// Функция для отметки уведомления как прочитанного
+export const markNotificationAsRead = async (notificationId) => {
+  try {
+    const response = await api.post(
+      `/api/notifications/${notificationId}/read`
+    );
+    return response.data;
+  } catch (error) {
+    logger.error("Ошибка при отметке уведомления как прочитанного:", error);
+    throw error;
   }
 };

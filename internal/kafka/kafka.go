@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -126,9 +127,17 @@ func SendPushNotification(deviceToken, message string) error {
 	pushMessage := expo.PushMessage{
 		To:    []expo.ExponentPushToken{pushToken},
 		Sound: "default",
-		Title: "Subscription Reminder",
+		Title: "❗ Напоминание об оплате!",
 		Body:  message,
 	}
+
+	// Устанавливаем URL изображения
+    imageURL := os.Getenv("ICON_PUSH_FILES_URL")
+
+    // Добавляем поле image для Android
+    pushMessage.Data = map[string]string{
+        "image": imageURL,
+    }
 
 	// Отправляем уведомление
 	response, err := client.Publish(&pushMessage)

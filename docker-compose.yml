@@ -226,6 +226,7 @@ services:
       - ${SSL_KEY_PATH}:/certs/privkey.pem:ro # Путь к SSL ключу
       - /etc/nginx/.htpasswd:/etc/nginx/.htpasswd:ro
       - /var/www/pay_aware/config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /var/www/pay_aware/icon-push:/var/www/pay_aware/icon-push:ro
     depends_on:
       - app
     networks:

@@ -27,6 +27,10 @@ export default {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
       },
+      notification: {
+        icon: "./assets/push-status-bar-icon.png",
+        color: "#ffffff",
+      },
       intentFilters: [
         {
           action: "VIEW",

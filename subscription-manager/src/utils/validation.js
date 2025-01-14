@@ -8,7 +8,7 @@ export const IsValidPassword = (password) => {
   const hasUpper = /[A-Z]/.test(password);
   const hasLower = /[a-z]/.test(password);
   const hasNumber = /\d/.test(password);
-  const hasSpecial = /[!@#$%^&*()_+-=[]{}|;:',.<>?/`~]/.test(password);
+  const hasSpecial = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+/.test(password);
 
   return (
     password.length >= minLen && hasUpper && hasLower && hasNumber && hasSpecial

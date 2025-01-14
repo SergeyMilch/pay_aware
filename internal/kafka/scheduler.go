@@ -61,7 +61,7 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 						continue
 					}
 
-					// Кэшируем информацию об отправленном уведомлении
+					// Ставим флаг в Redis, чтобы уведомление не отправлялось повторно
 					err = db.RedisClient.Set(ctx, cacheKey, "sent", time.Until(subscription.NextPaymentDate)).Err()
 					if err != nil {
 						logger.Warn("Failed to set cache for notification", "subscriptionID", subscription.ID, "error", err)
@@ -69,6 +69,35 @@ func (kp *KafkaProducer) StartNotificationScheduler() {
 						logger.Debug("Notification cached successfully", "subscriptionID", subscription.ID)
 					}
 					logger.Info("Notification sent and cached", "subscriptionID", subscription.ID)
+
+					// === ВАЖНО: если подписка повторяющаяся — сдвигаем дату. ===
+					if subscription.RecurrenceType == "monthly" || subscription.RecurrenceType == "yearly" {
+						// Сдвигаем NextPaymentDate на 1 месяц / 1 год вперёд
+						if subscription.RecurrenceType == "monthly" {
+							subscription.NextPaymentDate = subscription.NextPaymentDate.AddDate(0, 1, 0)
+						} else if subscription.RecurrenceType == "yearly" {
+							subscription.NextPaymentDate = subscription.NextPaymentDate.AddDate(1, 0, 0)
+						}
+
+						// Пересчитываем NotificationDate
+						subscription.NotificationDate = subscription.NextPaymentDate.Add(
+							-time.Duration(subscription.NotificationOffset) * time.Minute,
+						)
+
+						// Сохраняем обновлённую подписку
+						if err := db.GormDB.Save(&subscription).Error; err != nil {
+							logger.Error("Failed to update subscription date in cron", "error", err)
+							continue
+						}
+
+						// Удаляем кэш с подписками, чтобы при следующем запросе фронт знал о новой дате
+						redisKey := fmt.Sprintf("subscriptions:user:%d", subscription.UserID)
+						db.RedisClient.Del(ctx, redisKey)
+						logger.Info("Subscription nextPaymentDate shifted for recurring subscription",
+							"subscriptionID", subscription.ID,
+							"recurrenceType", subscription.RecurrenceType)
+					}
+					// === Конец блока сдвига дат ===
 				}
 			}
 		}

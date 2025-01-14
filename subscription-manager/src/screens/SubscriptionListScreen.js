@@ -220,7 +220,7 @@ const SubscriptionListScreen = () => {
         style={styles.addButton}
         onPress={handleAddSubscription}
       >
-        <Text style={styles.addButtonText}>Добавить подписку</Text>
+        <Text style={styles.addButtonText}>Добавить напоминание</Text>
       </TouchableOpacity>
     </View>
   );

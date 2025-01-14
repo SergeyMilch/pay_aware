@@ -89,6 +89,39 @@ func TestCreateSubscription(t *testing.T) {
 	assert.Equal(t, 100.0, createdSubscription.Cost)
 }
 
+func TestCreateSubscriptionWithRecurrence(t *testing.T) {
+    gin.SetMode(gin.TestMode)
+    db.GormDB = InitMockDB(t)
+    ClearMockDB(t, db.GormDB)
+
+    router := gin.Default()
+    router.POST("/subscription", handlers.CreateSubscription)
+
+    nextPaymentDate := time.Now().AddDate(0, 1, 0)
+    newSubscription := models.Subscription{
+        UserID:          1,                  // Обычно ID берётся из токена, но в тесте – напрямую
+        ServiceName:     "Test Monthly Service",
+        Cost:            50.0,
+        NextPaymentDate: nextPaymentDate,
+        RecurrenceType:  "monthly",          // <-- Вот ключевой момент!
+    }
+    body, _ := json.Marshal(newSubscription)
+    req, err := http.NewRequest(http.MethodPost, "/subscription", bytes.NewBuffer(body))
+    assert.NoError(t, err)
+    req.Header.Set("Content-Type", "application/json")
+
+    rr := httptest.NewRecorder()
+    router.ServeHTTP(rr, req)
+    assert.Equal(t, http.StatusOK, rr.Code)
+
+    var createdSubscription models.Subscription
+    err = json.Unmarshal(rr.Body.Bytes(), &createdSubscription)
+    assert.NoError(t, err)
+    assert.Equal(t, "Test Monthly Service", createdSubscription.ServiceName)
+    assert.Equal(t, 50.0, createdSubscription.Cost)
+    assert.Equal(t, "monthly", createdSubscription.RecurrenceType) // <-- проверяем поле
+}
+
 func TestCreateSubscriptionMissingFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	db.GormDB = InitMockDB(t)
@@ -183,6 +216,53 @@ func TestUpdateSubscription(t *testing.T) {
 	assert.Equal(t, "Spotify Premium", updated.ServiceName)
 	assert.Equal(t, 9.99, updated.Cost)
 	assert.True(t, updatedNextPaymentDate.Equal(updated.NextPaymentDate), "NextPaymentDate does not match")
+}
+
+func TestUpdateSubscriptionRecurrence(t *testing.T) {
+    gin.SetMode(gin.TestMode)
+    db.GormDB = InitMockDB(t)
+    ClearMockDB(t, db.GormDB)
+
+    // 1) Сначала создадим подписку без RecurrenceType
+    subscription := models.Subscription{
+        UserID:          1,
+        ServiceName:     "HBO",
+        Cost:            9.99,
+        NextPaymentDate: time.Now().AddDate(0, 0, 10),
+        RecurrenceType:  "", // пустое
+    }
+    db.GormDB.Create(&subscription)
+
+    // 2) Обновим подписку, проставив "yearly"
+    updatedSubscription := models.Subscription{
+        ServiceName:     "HBO Max",
+        Cost:            14.99,
+        NextPaymentDate: time.Now().AddDate(0, 0, 20),
+        RecurrenceType:  "yearly",
+    }
+    body, _ := json.Marshal(updatedSubscription)
+    req, err := http.NewRequest(
+        http.MethodPut,
+        "/subscription/"+strconv.Itoa(int(subscription.ID)),
+        bytes.NewBuffer(body),
+    )
+    assert.NoError(t, err)
+    req.Header.Set("Content-Type", "application/json")
+
+    rr := httptest.NewRecorder()
+    router := gin.Default()
+    router.PUT("/subscription/:id", handlers.UpdateSubscription)
+    router.ServeHTTP(rr, req)
+
+    assert.Equal(t, http.StatusOK, rr.Code)
+
+    // Проверяем в базе, что реально обновилось
+    var updated models.Subscription
+    err = db.GormDB.First(&updated, subscription.ID).Error
+    assert.NoError(t, err)
+    assert.Equal(t, "HBO Max", updated.ServiceName)
+    assert.Equal(t, 14.99, updated.Cost)
+    assert.Equal(t, "yearly", updated.RecurrenceType) // <-- проверяем поле
 }
 
 func TestDeleteSubscription(t *testing.T) {

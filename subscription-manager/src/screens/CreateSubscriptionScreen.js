@@ -19,6 +19,7 @@ import {
   registerForPushNotificationsAsync,
   sendDeviceTokenToServer,
 } from "../utils/notifications";
+import RadioButton from "../components/RadioButton";
 
 const CreateSubscriptionScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -29,6 +30,9 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   const [error, setError] = useState("");
   const [notificationOffset, setNotificationOffset] = useState(null);
   const [deviceToken, setDeviceToken] = useState("");
+
+  // Новое поле для выбора типа периодичности
+  const [recurrenceType, setRecurrenceType] = useState("");
 
   // Проверка токена при загрузке экрана
   useEffect(() => {
@@ -89,6 +93,16 @@ const CreateSubscriptionScreen = ({ navigation }) => {
     }
   };
 
+  const handleRecurrenceTypeChange = (type) => {
+    if (recurrenceType === type) {
+      // Если уже выбран этот тип, снимаем выбор
+      setRecurrenceType("");
+    } else {
+      // Иначе выбираем новый тип
+      setRecurrenceType(type);
+    }
+  };
+
   const handleSubmit = async () => {
     logger.log("Начало создания подписки...");
     setLoading(true);
@@ -137,6 +151,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         cost: parsedPrice,
         next_payment_date: nextPaymentDate.toISOString(),
         notification_offset: notificationOffset,
+        recurrence_type: recurrenceType, // <-- передаем новое поле
       });
 
       if (response && response.ID) {
@@ -244,6 +259,22 @@ const CreateSubscriptionScreen = ({ navigation }) => {
           <Text>За 15 минут</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Блок выбора периодичности с радиокнопками */}
+      <Text style={styles.label}>Периодичность напоминания (опционально):</Text>
+      <View style={styles.radioGroup}>
+        <RadioButton
+          label="Ежемесячно"
+          selected={recurrenceType === "monthly"}
+          onPress={() => handleRecurrenceTypeChange("monthly")}
+        />
+        <RadioButton
+          label="Ежегодно"
+          selected={recurrenceType === "yearly"}
+          onPress={() => handleRecurrenceTypeChange("yearly")}
+        />
+      </View>
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {loading ? (
         <ActivityIndicator size="large" color="#0000ff" />
@@ -286,6 +317,10 @@ const styles = StyleSheet.create({
   },
   selectedButton: {
     backgroundColor: "#dcdcdc",
+  },
+  radioGroup: {
+    flexDirection: "column",
+    marginBottom: 16,
   },
   errorText: {
     color: "red",

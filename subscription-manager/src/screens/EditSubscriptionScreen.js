@@ -13,6 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { getSubscriptionById, updateSubscription } from "../api/api";
 import logger from "../utils/logger";
 import { isValidName, isValidPrice } from "../utils/validation"; // Импорт функций валидации
+import RadioButton from "../components/RadioButton";
 
 const EditSubscriptionScreen = ({ route, navigation }) => {
   const { subscriptionId } = route.params;
@@ -22,6 +23,9 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
   const [nextPaymentDate, setNextPaymentDate] = useState("");
   const [notificationOffset, setNotificationOffset] = useState(0);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  // Новое состояние для периодичности
+  const [recurrenceType, setRecurrenceType] = useState("");
 
   const handleCostChange = (text) => {
     const formattedText = text.replace(",", ".");
@@ -39,6 +43,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
           setCost(data.cost.toString());
           setNextPaymentDate(data.next_payment_date);
           setNotificationOffset(data.notification_offset);
+          setRecurrenceType(data.recurrence_type || ""); // Считываем периодичность
           logger.log("Подписка загружена успешно:", data);
         } catch (error) {
           logger.error("Ошибка при загрузке подписки:", error);
@@ -50,6 +55,16 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
       fetchSubscription();
     }, [subscriptionId])
   );
+
+  const handleRecurrenceTypeChange = (type) => {
+    if (recurrenceType === type) {
+      // Если уже выбран этот тип, снимаем выбор
+      setRecurrenceType("");
+    } else {
+      // Иначе выбираем новый тип
+      setRecurrenceType(type);
+    }
+  };
 
   const handleSave = async () => {
     // Проверка корректности данных
@@ -71,6 +86,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
         cost: formattedCost,
         next_payment_date: nextPaymentDateObject.toISOString(),
         notification_offset: notificationOffset,
+        recurrence_type: recurrenceType, // <-- передаем новое поле
       };
 
       await updateSubscription(subscriptionId, updatedData);
@@ -165,6 +181,22 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
           <Text style={styles.buttonText}>15 минут</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Блок выбора периодичности с радиокнопками */}
+      <Text style={styles.label}>Периодичность напоминания (опционально):</Text>
+      <View style={styles.radioGroup}>
+        <RadioButton
+          label="Ежемесячно"
+          selected={recurrenceType === "monthly"}
+          onPress={() => handleRecurrenceTypeChange("monthly")}
+        />
+        <RadioButton
+          label="Ежегодно"
+          selected={recurrenceType === "yearly"}
+          onPress={() => handleRecurrenceTypeChange("yearly")}
+        />
+      </View>
+
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Сохранить</Text>
       </TouchableOpacity>

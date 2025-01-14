@@ -12,6 +12,7 @@ import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import * as Linking from "expo-linking";
 import { navigationRef } from "./src/navigation/navigationService";
+import { Provider as PaperProvider } from "react-native-paper";
 
 const App = () => {
   const [initialRoute, setInitialRoute] = useState(null);
@@ -178,10 +179,12 @@ const App = () => {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <StatusBar style="auto" />
-      <AppNavigator initialRoute={initialRoute} />
-    </View>
+    <PaperProvider>
+      <View style={{ flex: 1 }}>
+        <StatusBar style="auto" />
+        <AppNavigator initialRoute={initialRoute} />
+      </View>
+    </PaperProvider>
   );
 };
 

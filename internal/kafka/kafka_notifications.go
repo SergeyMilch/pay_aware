@@ -39,7 +39,7 @@ func ProcessKafkaMessage(notification models.Notification) {
     }
 
     // Сформировать сообщение с названием подписки
-    message := fmt.Sprintf("Не забудьте оплатить подписку на %s!", subscription.ServiceName)
+    message := fmt.Sprintf("Не забудьте оплатить подписку на *%s* стоимостью *%v* ₽!", subscription.ServiceName, subscription.Cost)
 
     // Добавляем случайную задержку (джиттер) перед отправкой уведомления
     jitter := time.Duration(rand.Intn(120)) * time.Second

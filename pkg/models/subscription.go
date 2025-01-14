@@ -15,4 +15,5 @@ type Subscription struct {
     NotificationOffset int           `json:"notification_offset"`
     NotificationDate  time.Time      `json:"notification_date" gorm:"type:timestamptz;index"`
     Notifications     []Notification `gorm:"foreignKey:SubscriptionID;constraint:onDelete:CASCADE;"`
+    RecurrenceType    string         `json:"recurrence_type"` // Новое поле для указания типа повторения: "monthly", "yearly" или ""
 }

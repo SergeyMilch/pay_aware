@@ -18,6 +18,7 @@ import (
 
 // CreateSubscription создает новую подписку
 func CreateSubscription(c *gin.Context) {
+    // Считываем userID из контекста (он туда кладётся после JWT-проверки)
     userID, exists := c.Get("userID")
     if !exists {
         logger.Warn("User ID is missing in context")
@@ -32,6 +33,8 @@ func CreateSubscription(c *gin.Context) {
         return
     }
 
+    // Создаем переменную subscription (структура models.Subscription),
+    // и пробуем заполнить её данными из JSON, который пришёл в запросе.
     var subscription models.Subscription
     if err := c.ShouldBindJSON(&subscription); err != nil {
         logger.Warn("Failed to bind JSON for subscription", "error", err)
@@ -42,6 +45,11 @@ func CreateSubscription(c *gin.Context) {
     // Устанавливаем userID в модель подписки
     subscription.UserID = userIDInt
 
+    // Здесь можно проверить обязательные поля, например:
+    // - ServiceName не должен быть пустым
+    // - NextPaymentDate не должен быть нулевым временем
+    // - Cost (стоимость) должна быть > 0
+    // Если что-то не так — возвращаем ошибку клиенту.
     // Проверка обязательных полей
     if subscription.ServiceName == "" || subscription.NextPaymentDate.IsZero() {
         logger.Warn("Missing required fields in subscription", "userID", userIDInt)
@@ -72,6 +80,8 @@ func CreateSubscription(c *gin.Context) {
     subscription.NextPaymentDate = subscription.NextPaymentDate.UTC()
 
     // Вычисляем дату и время уведомления
+    // Расчитываем NotificationDate (точное время, когда надо отправить пуш)
+    // Оно = NextPaymentDate - NotificationOffset
     subscription.NotificationDate = subscription.NextPaymentDate.Add(-time.Duration(subscription.NotificationOffset) * time.Minute)
 
     // Создание подписки в базе данных
@@ -81,7 +91,7 @@ func CreateSubscription(c *gin.Context) {
         return
     }
 
-    // Удаляем кэш для соответствующего пользователя после создания подписки
+    // Удаляем кэш (Redis) по подпискам пользователя, чтобы фронт при следующем запросе мог увидеть новую подписку
     redisKey := fmt.Sprintf("subscriptions:user:%d", subscription.UserID)
     db.RedisClient.Del(context.Background(), redisKey)
     logger.Debug("Deleted subscriptions cache after creating a subscription", "userID", subscription.UserID)
@@ -94,6 +104,7 @@ func CreateSubscription(c *gin.Context) {
 
 // UpdateSubscription обновляет информацию о подписке
 func UpdateSubscription(c *gin.Context) {
+    // Достаем userID из контекста
     userID, exists := c.Get("userID")
     if !exists {
         logger.Warn("User ID is missing in context")
@@ -108,8 +119,11 @@ func UpdateSubscription(c *gin.Context) {
         return
     }
 
+    // ID подписки, которую хотим обновить
     id := c.Param("id")
 
+    // Сначала ищем в базе текущую подписку, чтобы убедиться, что она действительно 
+    // существует и принадлежит этому userID.
     var existingSubscription models.Subscription
     // Поиск подписки по ID и проверка принадлежности пользователю
     if err := db.GormDB.Where("id = ? AND user_id = ?", id, userIDInt).First(&existingSubscription).Error; err != nil {
@@ -122,6 +136,7 @@ func UpdateSubscription(c *gin.Context) {
         return
     }
 
+    // Создаем структуру updatedData, в неё поместим новые данные, пришедшие в теле запроса
     var updatedData models.Subscription
     if err := c.ShouldBindJSON(&updatedData); err != nil {
         logger.Warn("Failed to bind JSON for subscription update", "error", err)
@@ -139,11 +154,17 @@ func UpdateSubscription(c *gin.Context) {
     // Приведение времени к UTC, чтобы избежать ошибок с часовыми поясами
     nextPaymentDateUTC := updatedData.NextPaymentDate.UTC()
 
+    // Обновляем поля existingSubscription (объект, который взяли из БД) новыми значениями
+    // Поле existingSubscription.ID при этом останется прежним, то есть мы меняем только данные
+    // (ServiceName, Cost, NextPaymentDate, NotificationOffset и RecurrenceType).
     // Обновление данных подписки
     existingSubscription.ServiceName = updatedData.ServiceName
     existingSubscription.Cost = updatedData.Cost
     existingSubscription.NextPaymentDate = nextPaymentDateUTC
     existingSubscription.NotificationOffset = updatedData.NotificationOffset
+    // Обновляем поле RecurrenceType
+    // (если пользователь на фронте выбрал "monthly"/"yearly"/"" и отправил это, мы сохраним)
+    existingSubscription.RecurrenceType = updatedData.RecurrenceType
 
     // Пересчитываем дату и время уведомления
     existingSubscription.NotificationDate = nextPaymentDateUTC.Add(-time.Duration(existingSubscription.NotificationOffset) * time.Minute)
@@ -154,11 +175,15 @@ func UpdateSubscription(c *gin.Context) {
         return
     }
 
+    // После обновления удаляем кэш по подпискам этого пользователя,
+    // чтобы при новом запросе с фронта база уже отдавала свежие данные.
     // Удаляем кэш для соответствующего пользователя после обновления подписки
     redisKey := fmt.Sprintf("subscriptions:user:%d", userIDInt)
     db.RedisClient.Del(context.Background(), redisKey)
     logger.Debug("Deleted subscriptions cache after updating a subscription", "userID", userIDInt)
 
+    // Также удаляем кэш уведомления (notification_sent:subscription:ID), 
+    // ведь если юзер меняет дату вручную, мы, возможно, захотим переслать уведомление заново
     // Удаляем кэш уведомления для данной подписки после обновления
     notificationCacheKey := fmt.Sprintf("notification_sent:subscription:%d", existingSubscription.ID)
     db.RedisClient.Del(context.Background(), notificationCacheKey)

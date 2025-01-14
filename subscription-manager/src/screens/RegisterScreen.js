@@ -147,7 +147,9 @@ const RegisterScreen = ({ navigation }) => {
       <TextInput
         placeholder="Email"
         value={credentials.email}
-        onChangeText={(value) => handleInputChange("email", value)}
+        onChangeText={(value) =>
+          handleInputChange("email", value.toLowerCase())
+        }
         keyboardType="email-address"
         autoCapitalize="none"
         style={styles.input}
