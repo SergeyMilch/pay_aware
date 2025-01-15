@@ -26,6 +26,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   const [price, setPrice] = useState("");
   const [nextPaymentDate, setNextPaymentDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notificationOffset, setNotificationOffset] = useState(null);
@@ -124,6 +125,18 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       return;
     }
 
+    // Дата и время не должны быть в прошлом
+    const now = new Date();
+    if (nextPaymentDate < now) {
+      logger.warn(
+        "Дата и время следующего платежа в прошлом:",
+        nextPaymentDate
+      );
+      setError("Дата и время следующего платежа не могут быть в прошлом.");
+      setLoading(false);
+      return;
+    }
+
     if (notificationOffset !== null && !deviceToken) {
       logger.warn(
         "Пользователь пытается создать подписку с напоминанием без включенных уведомлений"
@@ -194,6 +207,38 @@ const CreateSubscriptionScreen = ({ navigation }) => {
     hideDatePicker();
   };
 
+  // Добавляем функции для управления тайм-пикером
+  const showTimePicker = () => {
+    logger.log("Показать выбор времени");
+    setTimePickerVisibility(true);
+  };
+
+  const hideTimePicker = () => {
+    logger.log("Скрыть выбор времени");
+    setTimePickerVisibility(false);
+  };
+
+  const handleTimeConfirm = (time) => {
+    logger.log("Время следующего платежа выбрано:", time);
+
+    // Округляем минуты до ближайших 15
+    const adjustedTime = new Date(nextPaymentDate);
+    adjustedTime.setHours(time.getHours());
+    const minutes = time.getMinutes();
+    const adjustedMinutes = Math.round(minutes / 15) * 15;
+
+    // Если округление приводит к 60 минутам, увеличиваем час
+    if (adjustedMinutes === 60) {
+      adjustedTime.setHours(adjustedTime.getHours() + 1);
+      adjustedTime.setMinutes(0);
+    } else {
+      adjustedTime.setMinutes(adjustedMinutes);
+    }
+
+    setNextPaymentDate(adjustedTime);
+    hideTimePicker();
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Название сервиса</Text>
@@ -228,6 +273,30 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         mode="date"
         onConfirm={handleConfirm}
         onCancel={hideDatePicker}
+      />
+      {/* Новый блок для выбора времени */}
+      <Text style={styles.label}>Время следующего платежа</Text>
+      <TouchableOpacity onPress={showTimePicker}>
+        <TextInput
+          style={styles.input}
+          value={
+            nextPaymentDate
+              ? nextPaymentDate.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""
+          }
+          placeholder="Выберите время следующего платежа"
+          editable={false}
+        />
+      </TouchableOpacity>
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={handleTimeConfirm}
+        onCancel={hideTimePicker}
+        is24Hour={true}
       />
       <Text style={styles.label}>Напомнить:</Text>
       <View style={styles.buttonGroup}>

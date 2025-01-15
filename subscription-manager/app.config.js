@@ -8,6 +8,10 @@ export default {
     platforms: ["ios", "android"],
     orientation: "portrait",
     icon: "./assets/icon.png",
+    notification: {
+      icon: "./assets/push-icon.png",
+      color: "#ffffff",
+    },
     userInterfaceStyle: "light",
     splash: {
       image: "./assets/splash.png",
@@ -26,10 +30,6 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
-      },
-      notification: {
-        icon: "./assets/push-status-bar-icon.png",
-        color: "#ffffff",
       },
       intentFilters: [
         {

@@ -92,6 +92,25 @@ const SubscriptionListScreen = () => {
     }
   }, [isFocused]);
 
+  const confirmDelete = (id) => {
+    Alert.alert(
+      "Удаление подписки",
+      "Вы уверены, что хотите удалить эту подписку?",
+      [
+        {
+          text: "Нет",
+          style: "cancel",
+        },
+        {
+          text: "Да",
+          onPress: () => handleDelete(id),
+          style: "destructive",
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   const handleDelete = async (id) => {
     if (!id) {
       logger.error("Идентификатор подписки отсутствует, удаление невозможно");
@@ -206,7 +225,7 @@ const SubscriptionListScreen = () => {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.button, styles.deleteButton]}
-                  onPress={() => handleDelete(item.ID)}
+                  onPress={() => confirmDelete(item.ID)}
                 >
                   <Text style={styles.buttonText}>Удалить</Text>
                 </TouchableOpacity>

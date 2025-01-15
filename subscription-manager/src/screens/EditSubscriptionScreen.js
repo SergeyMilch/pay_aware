@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Platform,
+  Alert,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useFocusEffect } from "@react-navigation/native";
@@ -20,12 +21,14 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [serviceName, setServiceName] = useState("");
   const [cost, setCost] = useState("");
-  const [nextPaymentDate, setNextPaymentDate] = useState("");
-  const [notificationOffset, setNotificationOffset] = useState(0);
+  const [nextPaymentDate, setNextPaymentDate] = useState(new Date());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false); // Новое состояние для времени
+  const [notificationOffset, setNotificationOffset] = useState(0);
 
   // Новое состояние для периодичности
   const [recurrenceType, setRecurrenceType] = useState("");
+  const [error, setError] = useState("");
 
   const handleCostChange = (text) => {
     const formattedText = text.replace(",", ".");
@@ -41,12 +44,13 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
           const data = await getSubscriptionById(subscriptionId);
           setServiceName(data.service_name);
           setCost(data.cost.toString());
-          setNextPaymentDate(data.next_payment_date);
+          setNextPaymentDate(new Date(data.next_payment_date)); // Преобразуем строку в Date объект
           setNotificationOffset(data.notification_offset);
           setRecurrenceType(data.recurrence_type || ""); // Считываем периодичность
           logger.log("Подписка загружена успешно:", data);
         } catch (error) {
           logger.error("Ошибка при загрузке подписки:", error);
+          Alert.alert("Ошибка", "Не удалось загрузить подписку.");
         } finally {
           setLoading(false);
         }
@@ -67,32 +71,44 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
   };
 
   const handleSave = async () => {
+    setError("");
+
     // Проверка корректности данных
     if (!isValidName(serviceName)) {
-      alert("Название содержит недопустимые символы.");
+      Alert.alert("Ошибка", "Название содержит недопустимые символы.");
       return;
     }
     const formattedCost = Number(parseFloat(cost).toFixed(2));
     if (isNaN(formattedCost) || !isValidPrice(cost)) {
-      alert("Введите корректную стоимость подписки.");
+      Alert.alert("Ошибка", "Введите корректную стоимость подписки.");
+      return;
+    }
+
+    // Дата и время не должны быть в прошлом
+    const now = new Date();
+    if (nextPaymentDate < now) {
+      Alert.alert(
+        "Ошибка",
+        "Дата и время следующего платежа не могут быть в прошлом."
+      );
       return;
     }
 
     try {
-      const nextPaymentDateObject = new Date(nextPaymentDate);
-
       const updatedData = {
         service_name: serviceName,
         cost: formattedCost,
-        next_payment_date: nextPaymentDateObject.toISOString(),
+        next_payment_date: nextPaymentDate.toISOString(),
         notification_offset: notificationOffset,
         recurrence_type: recurrenceType, // <-- передаем новое поле
       };
 
       await updateSubscription(subscriptionId, updatedData);
+      Alert.alert("Успех", "Подписка успешно обновлена.");
       navigation.goBack();
     } catch (error) {
       logger.error("Ошибка при обновлении подписки:", error);
+      Alert.alert("Ошибка", "Не удалось обновить подписку. Попробуйте снова.");
     }
   };
 
@@ -104,10 +120,37 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
     setDatePickerVisibility(false);
   };
 
-  const handleConfirm = (date) => {
-    const formattedDate = date.toISOString();
-    setNextPaymentDate(formattedDate);
+  const handleDateConfirm = (date) => {
+    setNextPaymentDate(date);
     hideDatePicker();
+  };
+
+  // Новые функции для выбора времени
+  const showTimePicker = () => {
+    setTimePickerVisibility(true);
+  };
+
+  const hideTimePickerFunc = () => {
+    setTimePickerVisibility(false);
+  };
+
+  const handleTimeConfirm = (time) => {
+    // Округляем минуты до ближайших 15
+    const adjustedTime = new Date(nextPaymentDate);
+    adjustedTime.setHours(time.getHours());
+    const minutes = time.getMinutes();
+    const adjustedMinutes = Math.round(minutes / 15) * 15;
+
+    // Если округление приводит к 60 минутам, увеличиваем час
+    if (adjustedMinutes === 60) {
+      adjustedTime.setHours(adjustedTime.getHours() + 1);
+      adjustedTime.setMinutes(0);
+    } else {
+      adjustedTime.setMinutes(adjustedMinutes);
+    }
+
+    setNextPaymentDate(adjustedTime);
+    hideTimePickerFunc();
   };
 
   if (loading) {
@@ -120,12 +163,14 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.label}>Название сервиса</Text>
       <TextInput
         style={styles.input}
         value={serviceName}
         onChangeText={setServiceName}
         placeholder="Название сервиса"
       />
+      <Text style={styles.label}>Стоимость</Text>
       <TextInput
         style={styles.input}
         value={cost}
@@ -133,26 +178,66 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
         placeholder="Стоимость"
         keyboardType="numeric"
       />
+
+      {/* Блок выбора даты следующего платежа */}
+      <Text style={styles.label}>Дата следующего платежа</Text>
       {Platform.OS === "web" ? (
         <TextInput
           type="date"
           style={styles.input}
-          value={nextPaymentDate}
-          onChangeText={setNextPaymentDate}
+          value={nextPaymentDate.toISOString().split("T")[0]}
+          onChangeText={(text) => {
+            const date = new Date(text);
+            if (!isNaN(date)) {
+              setNextPaymentDate(date);
+            }
+          }}
           placeholder="Дата следующего платежа (например, 2024-11-15)"
         />
       ) : (
         <TouchableOpacity onPress={showDatePicker}>
           <TextInput
             style={styles.input}
-            value={new Date(nextPaymentDate).toLocaleDateString()} // Преобразование в локальное время
+            value={nextPaymentDate ? nextPaymentDate.toLocaleDateString() : ""}
             placeholder="Дата следующего платежа"
             editable={false}
           />
         </TouchableOpacity>
       )}
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={handleDateConfirm}
+        onCancel={hideDatePicker}
+      />
+
+      {/* Новый блок для выбора времени */}
+      <Text style={styles.label}>Время следующего платежа</Text>
+      <TouchableOpacity onPress={showTimePicker}>
+        <TextInput
+          style={styles.input}
+          value={
+            nextPaymentDate
+              ? nextPaymentDate.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""
+          }
+          placeholder="Время следующего платежа"
+          editable={false}
+        />
+      </TouchableOpacity>
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={handleTimeConfirm}
+        onCancel={hideTimePickerFunc}
+        is24Hour={true}
+      />
+
+      <Text style={styles.label}>Напомнить за:</Text>
       <View style={styles.notificationContainer}>
-        <Text>Напомнить за:</Text>
         <TouchableOpacity
           style={[
             styles.notificationButton,
@@ -197,15 +282,11 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
         />
       </View>
 
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Сохранить</Text>
       </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
-      />
     </View>
   );
 };
@@ -215,6 +296,10 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: "#f0f0f0",
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -245,6 +330,10 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#000",
   },
+  radioGroup: {
+    flexDirection: "column",
+    marginBottom: 16,
+  },
   saveButton: {
     marginTop: 20,
     padding: 12,
@@ -255,6 +344,11 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: "#fff",
     fontSize: 16,
+  },
+  errorText: {
+    color: "red",
+    marginBottom: 16,
+    textAlign: "center",
   },
 });
 

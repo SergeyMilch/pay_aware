@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/SergeyMilch/pay_aware/internal/logger"
@@ -39,7 +40,10 @@ func ProcessKafkaMessage(notification models.Notification) {
     }
 
     // Сформировать сообщение с названием подписки
-    message := fmt.Sprintf("Не забудьте оплатить подписку на *%s* стоимостью *%v* ₽!", subscription.ServiceName, subscription.Cost)
+    message := fmt.Sprintf("💳 Не забудьте оплатить:\n• Сервис: %s\n• Стоимость: %v ₽", 
+    strings.ToUpper(subscription.ServiceName), 
+    subscription.Cost)
+    // message := fmt.Sprintf("Не забудьте оплатить подписку на **%s** стоимостью **%v ₽**!", subscription.ServiceName, subscription.Cost)
 
     // Добавляем случайную задержку (джиттер) перед отправкой уведомления
     jitter := time.Duration(rand.Intn(120)) * time.Second
