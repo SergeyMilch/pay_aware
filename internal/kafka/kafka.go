@@ -124,12 +124,14 @@ func SendPushNotification(deviceToken, message string) error {
 
 	// Создаем сообщение для отправки
 	pushToken := expo.ExponentPushToken(deviceToken)
+
 	pushMessage := expo.PushMessage{
 		To:    []expo.ExponentPushToken{pushToken},
 		Sound: "default",
 		Title: "⚠️Напоминание об оплате",
 		// Title: "❗🔔⚠️ Напоминание об оплате!",
 		Body:  message,
+		ChannelID: "payment-reminders", // <--- добавляем channelId
 	}
 
 	// Устанавливаем URL изображения

@@ -7,7 +7,7 @@ import {
   checkTokenAndNavigate,
   initializeAuthToken,
 } from "./src/api/api";
-import { Alert, View, Text, AppState } from "react-native";
+import { Alert, View, Text, AppState, Platform } from "react-native";
 import logger from "./src/utils/logger";
 import { registerForPushNotificationsAsync } from "./src/utils/notifications";
 import * as Linking from "expo-linking";
@@ -44,6 +44,9 @@ const App = () => {
             "Не удалось зарегистрировать токен устройства для push-уведомлений"
           );
         }
+
+        // Создаём/обновляем канал на Android
+        await createVibrationChannel();
 
         // Установка обработчика уведомлений
         Notifications.setNotificationHandler({
@@ -187,5 +190,24 @@ const App = () => {
     </PaperProvider>
   );
 };
+
+// Функция создаёт канал "payment-reminders" с вибрацией
+async function createVibrationChannel() {
+  if (Platform.OS === "android") {
+    try {
+      // Важно: название совпадает с тем, что указали на бэке — "payment-reminders".
+      await Notifications.setNotificationChannelAsync("payment-reminders", {
+        name: "Payment Reminders", // любое описание
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250], // паттерн вибрации
+        sound: "default", // при желании можно указать "default"
+        lightColor: "#FF231F7C", // при желании цвет светодиода
+      });
+      logger.log("Канал 'payment-reminders' успешно создан/обновлён");
+    } catch (err) {
+      logger.error("Ошибка при создании канала уведомлений:", err);
+    }
+  }
+}
 
 export default App;
