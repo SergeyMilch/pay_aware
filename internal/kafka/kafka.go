@@ -127,7 +127,7 @@ func SendPushNotification(deviceToken, message string) error {
 	pushMessage := expo.PushMessage{
 		To:    []expo.ExponentPushToken{pushToken},
 		Sound: "default",
-		Title: "\u203C Напоминание об оплате",
+		Title: "⚠️Напоминание об оплате",
 		// Title: "❗🔔⚠️ Напоминание об оплате!",
 		Body:  message,
 	}
