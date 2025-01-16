@@ -64,6 +64,12 @@ const CreateSubscriptionScreen = ({ navigation }) => {
 
   // Проверка разрешений на уведомления при выборе напоминания
   const handleNotificationOption = async (offset) => {
+    if (notificationOffset === offset) {
+      // Если пользователь нажал на уже выбранную кнопку, снимаем выбор
+      setNotificationOffset(null);
+      return;
+    }
+
     logger.log("Проверяем статус разрешений для push-уведомлений...");
     const deviceToken = await registerForPushNotificationsAsync();
 
@@ -158,12 +164,16 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         return;
       }
 
+      // Устанавливаем notificationOffset на 0, если пользователь не выбрал напоминание
+      const notificationOffsetToSend =
+        notificationOffset !== null ? notificationOffset : 0;
+
       // Создаем подписку
       const response = await createSubscription({
         service_name: name,
         cost: parsedPrice,
         next_payment_date: nextPaymentDate.toISOString(),
-        notification_offset: notificationOffset,
+        notification_offset: notificationOffsetToSend,
         recurrence_type: recurrenceType, // <-- передаем новое поле
       });
 
@@ -298,6 +308,9 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         onCancel={hideTimePicker}
         is24Hour={true}
       />
+      <Text style={[styles.label, { textAlign: "center", fontSize: 18 }]}>
+        Дополнительно
+      </Text>
       <Text style={styles.label}>Напомнить:</Text>
       <View style={styles.buttonGroup}>
         <TouchableOpacity
@@ -330,7 +343,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       </View>
 
       {/* Блок выбора периодичности с радиокнопками */}
-      <Text style={styles.label}>Периодичность напоминания (опционально):</Text>
+      <Text style={styles.label}>Периодичность напоминания:</Text>
       <View style={styles.radioGroup}>
         <RadioButton
           label="Ежемесячно"
@@ -386,6 +399,7 @@ const styles = StyleSheet.create({
   },
   selectedButton: {
     backgroundColor: "#dcdcdc",
+    borderColor: "#000", // Дополнительно: изменяем цвет границы при выборе
   },
   radioGroup: {
     flexDirection: "column",

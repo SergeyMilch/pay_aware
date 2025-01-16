@@ -153,6 +153,17 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
     hideTimePickerFunc();
   };
 
+  // Функция для обработки выбора напоминания
+  const handleNotificationOption = (offset) => {
+    if (notificationOffset === offset) {
+      // Если уже выбрано, снимаем выбор и устанавливаем 0
+      setNotificationOffset(0);
+    } else {
+      // Устанавливаем новое значение
+      setNotificationOffset(offset);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -236,6 +247,10 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
         is24Hour={true}
       />
 
+      <Text style={[styles.label, { textAlign: "center", fontSize: 18 }]}>
+        Дополнительно
+      </Text>
+
       <Text style={styles.label}>Напомнить за:</Text>
       <View style={styles.notificationContainer}>
         <TouchableOpacity
@@ -243,7 +258,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
             styles.notificationButton,
             notificationOffset === 1440 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(1440)}
+          onPress={() => handleNotificationOption(1440)}
         >
           <Text style={styles.buttonText}>1 день</Text>
         </TouchableOpacity>
@@ -252,7 +267,7 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
             styles.notificationButton,
             notificationOffset === 60 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(60)}
+          onPress={() => handleNotificationOption(60)}
         >
           <Text style={styles.buttonText}>1 час</Text>
         </TouchableOpacity>
@@ -261,14 +276,14 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
             styles.notificationButton,
             notificationOffset === 15 && styles.selectedButton,
           ]}
-          onPress={() => setNotificationOffset(15)}
+          onPress={() => handleNotificationOption(15)}
         >
           <Text style={styles.buttonText}>15 минут</Text>
         </TouchableOpacity>
       </View>
 
       {/* Блок выбора периодичности с радиокнопками */}
-      <Text style={styles.label}>Периодичность напоминания (опционально):</Text>
+      <Text style={styles.label}>Периодичность напоминания:</Text>
       <View style={styles.radioGroup}>
         <RadioButton
           label="Ежемесячно"
@@ -326,6 +341,7 @@ const styles = StyleSheet.create({
   },
   selectedButton: {
     backgroundColor: "#dcdcdc",
+    borderColor: "#000", // Дополнительно: изменяем цвет границы при выборе
   },
   buttonText: {
     color: "#000",

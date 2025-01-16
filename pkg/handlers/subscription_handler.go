@@ -71,18 +71,18 @@ func CreateSubscription(c *gin.Context) {
         return
     }
 
-    // Устанавливаем значение по умолчанию для NotificationOffset, если не указано
-    if subscription.NotificationOffset == 0 {
-        subscription.NotificationOffset = 60 // Уведомление за 60 минут по умолчанию
-    }
-
     // Приводим дату следующего платежа к UTC
     subscription.NextPaymentDate = subscription.NextPaymentDate.UTC()
 
-    // Вычисляем дату и время уведомления
-    // Расчитываем NotificationDate (точное время, когда надо отправить пуш)
-    // Оно = NextPaymentDate - NotificationOffset
-    subscription.NotificationDate = subscription.NextPaymentDate.Add(-time.Duration(subscription.NotificationOffset) * time.Minute)
+    // Вычисляем дату и время уведомления только если NotificationOffset > 0
+    if subscription.NotificationOffset > 0 {
+        // Расчитываем NotificationDate (точное время, когда надо отправить пуш)
+        // Оно = NextPaymentDate - NotificationOffset
+        subscription.NotificationDate = subscription.NextPaymentDate.Add(-time.Duration(subscription.NotificationOffset) * time.Minute)
+    } else {
+        // Если NotificationOffset == 0, устанавливаем NotificationDate равным NextPaymentDate
+        subscription.NotificationDate = subscription.NextPaymentDate
+    }
 
     // Создание подписки в базе данных
     if err := db.GormDB.Create(&subscription).Error; err != nil {
@@ -167,7 +167,13 @@ func UpdateSubscription(c *gin.Context) {
     existingSubscription.RecurrenceType = updatedData.RecurrenceType
 
     // Пересчитываем дату и время уведомления
-    existingSubscription.NotificationDate = nextPaymentDateUTC.Add(-time.Duration(existingSubscription.NotificationOffset) * time.Minute)
+    if existingSubscription.NotificationOffset > 0 {
+        // NotificationDate = NextPaymentDate - NotificationOffset
+        existingSubscription.NotificationDate = existingSubscription.NextPaymentDate.Add(-time.Duration(existingSubscription.NotificationOffset) * time.Minute)
+    } else {
+        // NotificationDate = NextPaymentDate
+        existingSubscription.NotificationDate = existingSubscription.NextPaymentDate
+    }
 
     if err := db.GormDB.Save(&existingSubscription).Error; err != nil {
         logger.Error("Failed to update subscription", "id", existingSubscription.ID, "error", err)

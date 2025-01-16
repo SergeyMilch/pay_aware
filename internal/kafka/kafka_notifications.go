@@ -40,7 +40,7 @@ func ProcessKafkaMessage(notification models.Notification) {
     }
 
     // Сформировать сообщение с названием подписки
-    message := fmt.Sprintf("Не забудьте оплатить:\n• Сервис: «%s»\n• 💳Стоимость: %v ₽", 
+    message := fmt.Sprintf("Не забудьте оплатить💳:\n• Сервис: «%s»\n• Стоимость: %v ₽", 
     strings.ToUpper(subscription.ServiceName), 
     subscription.Cost)
     // message := fmt.Sprintf("Не забудьте оплатить подписку на **%s** стоимостью **%v ₽**!", subscription.ServiceName, subscription.Cost)
