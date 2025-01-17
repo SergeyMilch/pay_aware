@@ -8,10 +8,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { createSubscription } from "../api/api";
-import { isValidName, isValidPrice } from "../utils/validation";
+import { isValidName, isValidPrice, isValidTag } from "../utils/validation";
 import logger from "../utils/logger";
 import * as SecureStore from "expo-secure-store";
 import { navigationRef } from "../navigation/navigationService";
@@ -32,8 +33,10 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   const [notificationOffset, setNotificationOffset] = useState(null);
   const [deviceToken, setDeviceToken] = useState("");
 
-  // Новое поле для выбора типа периодичности
+  // Поле для выбора типа периодичности
   const [recurrenceType, setRecurrenceType] = useState("");
+  // Поле для ввода тега
+  const [tag, setTag] = useState(""); // <-- по умолчанию пусто
 
   // Проверка токена при загрузке экрана
   useEffect(() => {
@@ -154,6 +157,16 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       return;
     }
 
+    // Проверяем тег
+    if (!isValidTag(tag)) {
+      Alert.alert(
+        "Некорректный тег",
+        "Тег должен быть одним словом (без пробелов) и не длиннее 20 символов."
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       // Проверка токена перед отправкой
       const token = await SecureStore.getItemAsync("authToken");
@@ -174,7 +187,8 @@ const CreateSubscriptionScreen = ({ navigation }) => {
         cost: parsedPrice,
         next_payment_date: nextPaymentDate.toISOString(),
         notification_offset: notificationOffsetToSend,
-        recurrence_type: recurrenceType, // <-- передаем новое поле
+        recurrence_type: recurrenceType, // <-- передаем тип периодичности
+        tag: tag, // <-- передаем тег
       });
 
       if (response && response.ID) {
@@ -249,121 +263,164 @@ const CreateSubscriptionScreen = ({ navigation }) => {
     hideTimePicker();
   };
 
+  const handleTagChange = (input) => {
+    let trimmed = input.trim();
+    if (trimmed === "") {
+      setTag("");
+      return;
+    }
+
+    if (/\s/.test(input)) {
+      Alert.alert(
+        "Неверный ввод",
+        'Тег должен быть одним словом (без пробелов). Например, "Можно_отписаться"'
+      );
+    }
+
+    let noSpaces = trimmed.replace(/\s+/g, "");
+
+    // Допустим, хотим 20 unicode-символов (JS .length обычно == кол-во Unicode code units)
+    if (noSpaces.length > 20) {
+      Alert.alert("Тег не может быть длиннее 20 символов");
+      noSpaces = noSpaces.slice(0, 20);
+    }
+    setTag(noSpaces);
+  };
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>Название сервиса</Text>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={(value) => {
-          logger.log("Пользователь изменяет название подписки");
-          setName(value);
-        }}
-        placeholder="Введите название подписки"
-      />
-      <Text style={styles.label}>Стоимость</Text>
-      <TextInput
-        style={styles.input}
-        value={price}
-        onChangeText={handlePriceChange}
-        placeholder="Введите стоимость подписки"
-        keyboardType="numeric"
-      />
-      <Text style={styles.label}>Дата следующего платежа</Text>
-      <TouchableOpacity onPress={showDatePicker}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.scrollContent}
+    >
+      <View style={styles.container}>
+        <Text style={styles.label}>Название сервиса</Text>
         <TextInput
           style={styles.input}
-          value={nextPaymentDate ? nextPaymentDate.toLocaleDateString() : ""}
-          placeholder="Выберите дату следующего платежа"
-          editable={false}
+          value={name}
+          onChangeText={(value) => {
+            logger.log("Пользователь изменяет название подписки");
+            setName(value);
+          }}
+          placeholder="Введите название подписки"
         />
-      </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
-      />
-      {/* Новый блок для выбора времени */}
-      <Text style={styles.label}>Время следующего платежа</Text>
-      <TouchableOpacity onPress={showTimePicker}>
+        <Text style={styles.label}>Стоимость</Text>
         <TextInput
           style={styles.input}
-          value={
-            nextPaymentDate
-              ? nextPaymentDate.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : ""
-          }
-          placeholder="Выберите время следующего платежа"
-          editable={false}
+          value={price}
+          onChangeText={handlePriceChange}
+          placeholder="Введите стоимость подписки"
+          keyboardType="numeric"
         />
-      </TouchableOpacity>
-      <DateTimePickerModal
-        isVisible={isTimePickerVisible}
-        mode="time"
-        onConfirm={handleTimeConfirm}
-        onCancel={hideTimePicker}
-        is24Hour={true}
-      />
-      <Text style={[styles.label, { textAlign: "center", fontSize: 18 }]}>
-        Дополнительно
-      </Text>
-      <Text style={styles.label}>Напомнить:</Text>
-      <View style={styles.buttonGroup}>
-        <TouchableOpacity
-          style={[
-            styles.notificationButton,
-            notificationOffset === 1440 && styles.selectedButton,
-          ]}
-          onPress={() => handleNotificationOption(1440)}
-        >
-          <Text>За день</Text>
+        <Text style={styles.label}>Дата следующего платежа</Text>
+        <TouchableOpacity onPress={showDatePicker}>
+          <TextInput
+            style={styles.input}
+            value={nextPaymentDate ? nextPaymentDate.toLocaleDateString() : ""}
+            placeholder="Выберите дату следующего платежа"
+            editable={false}
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.notificationButton,
-            notificationOffset === 60 && styles.selectedButton,
-          ]}
-          onPress={() => handleNotificationOption(60)}
-        >
-          <Text>За час</Text>
+        <DateTimePickerModal
+          isVisible={isDatePickerVisible}
+          mode="date"
+          onConfirm={handleConfirm}
+          onCancel={hideDatePicker}
+        />
+        {/* Новый блок для выбора времени */}
+        <Text style={styles.label}>Время следующего платежа</Text>
+        <TouchableOpacity onPress={showTimePicker}>
+          <TextInput
+            style={styles.input}
+            value={
+              nextPaymentDate
+                ? nextPaymentDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : ""
+            }
+            placeholder="Выберите время следующего платежа"
+            editable={false}
+          />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.notificationButton,
-            notificationOffset === 15 && styles.selectedButton,
-          ]}
-          onPress={() => handleNotificationOption(15)}
-        >
-          <Text>За 15 минут</Text>
-        </TouchableOpacity>
-      </View>
+        <DateTimePickerModal
+          isVisible={isTimePickerVisible}
+          mode="time"
+          onConfirm={handleTimeConfirm}
+          onCancel={hideTimePicker}
+          is24Hour={true}
+        />
+        <Text style={[styles.label, { textAlign: "center", fontSize: 18 }]}>
+          Дополнительно
+        </Text>
+        <Text style={styles.label}>Напомнить:</Text>
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            style={[
+              styles.notificationButton,
+              notificationOffset === 1440 && styles.selectedButton,
+            ]}
+            onPress={() => handleNotificationOption(1440)}
+          >
+            <Text>За день</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.notificationButton,
+              notificationOffset === 60 && styles.selectedButton,
+            ]}
+            onPress={() => handleNotificationOption(60)}
+          >
+            <Text>За час</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.notificationButton,
+              notificationOffset === 15 && styles.selectedButton,
+            ]}
+            onPress={() => handleNotificationOption(15)}
+          >
+            <Text>За 15 минут</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Блок выбора периодичности с радиокнопками */}
-      <Text style={styles.label}>Периодичность напоминания:</Text>
-      <View style={styles.radioGroup}>
-        <RadioButton
-          label="Ежемесячно"
-          selected={recurrenceType === "monthly"}
-          onPress={() => handleRecurrenceTypeChange("monthly")}
-        />
-        <RadioButton
-          label="Ежегодно"
-          selected={recurrenceType === "yearly"}
-          onPress={() => handleRecurrenceTypeChange("yearly")}
-        />
-      </View>
+        {/* Блок выбора периодичности с радиокнопками */}
+        <Text style={styles.label}>Периодичность напоминания:</Text>
+        <View style={styles.radioGroup}>
+          <RadioButton
+            label="Ежемесячно"
+            selected={recurrenceType === "monthly"}
+            onPress={() => handleRecurrenceTypeChange("monthly")}
+          />
+          <RadioButton
+            label="Ежегодно"
+            selected={recurrenceType === "yearly"}
+            onPress={() => handleRecurrenceTypeChange("yearly")}
+          />
+        </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      {loading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
-      ) : (
-        <Button title="Создать" onPress={handleSubmit} />
-      )}
-    </View>
+        {/* Поле для тега */}
+        <Text style={styles.label}>Тег (возможность поиска):</Text>
+        <TextInput
+          style={styles.input}
+          value={tag}
+          onChangeText={handleTagChange}
+          placeholder="Одно слово до 20 символов (или оставьте пустым)"
+        />
+        <Text style={{ fontSize: 12, color: "#666" }}>
+          {tag.length} / 20 символов
+        </Text>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : (
+          <TouchableOpacity style={styles.saveButton} onPress={handleSubmit}>
+            <Text style={styles.saveButtonText}>Создать</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </ScrollView>
   );
 };
 
@@ -371,7 +428,10 @@ const CreateSubscriptionScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: "#f0f0f0",
+  },
+  scrollContent: {
+    padding: 16, // отступы внутри скролла
     backgroundColor: "#f0f0f0",
   },
   label: {
@@ -409,6 +469,17 @@ const styles = StyleSheet.create({
     color: "red",
     marginBottom: 16,
     textAlign: "center",
+  },
+  saveButton: {
+    marginTop: 20,
+    padding: 12,
+    borderRadius: 4,
+    backgroundColor: "#4CAF50", // Зеленый цвет, аналогичный кнопке "Сохранить"
+    alignItems: "center",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });
 

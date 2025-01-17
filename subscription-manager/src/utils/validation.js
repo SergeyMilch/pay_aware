@@ -19,3 +19,20 @@ export const isValidName = (input) =>
   /^[a-zA-Zа-яА-Я0-9\s\-+\.,!]+$/.test(input);
 
 export const isValidPrice = (input) => /^\d+(\.\d{0,2})?$/.test(input);
+
+export function isValidTag(tag) {
+  // Разрешаем пустую строку
+  if (!tag || tag.trim() === "") {
+    return true; // пустой тег считается валидным
+  }
+  // Проверяем длину
+  if (tag.length > 20) {
+    return false;
+  }
+  // Проверяем, нет ли пробелов (если хотим, чтобы тег был одним словом)
+  if (/\s/.test(tag)) {
+    return false;
+  }
+
+  return true;
+}

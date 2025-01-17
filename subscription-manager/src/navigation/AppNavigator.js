@@ -12,7 +12,7 @@ import SubscriptionDetailScreen from "../screens/SubscriptionDetailScreen";
 import SetPinScreen from "../screens/SetPinScreen"; // Добавляем экран для установки ПИН-кода
 import EnterPinScreen from "../screens/EnterPinScreen"; // Добавляем экран для ввода ПИН-кода
 import NotificationHistoryScreen from "../screens/NotificationHistoryScreen"; // Импорт экрана истории пуш
-import HeaderMenu from "../components/HeaderMenu"; // Импорт компонента меню
+import TagFilterScreen from "../screens/TagFilterScreen"; // <-- импортируем экран тега
 import { navigationRef } from "./navigationService";
 import logger from "../utils/logger";
 
@@ -63,6 +63,16 @@ const AppNavigator = ({ initialRoute }) => {
         <Stack.Screen
           name="SubscriptionList"
           component={SubscriptionListScreen}
+          options={{
+            title: "Список подписок",
+            headerShown: true,
+            headerLeft: null,
+            gestureEnabled: false,
+          }}
+        />
+        {/* <Stack.Screen
+          name="SubscriptionList"
+          component={SubscriptionListScreen}
           options={({ navigation }) => ({
             title: "Список подписок",
             headerShown: true,
@@ -70,11 +80,16 @@ const AppNavigator = ({ initialRoute }) => {
             gestureEnabled: false,
             headerRight: () => <HeaderMenu navigation={navigation} />,
           })}
-        />
+        /> */}
         <Stack.Screen
           name="NotificationHistory"
           component={NotificationHistoryScreen}
           options={{ title: "История уведомлений" }}
+        />
+        <Stack.Screen
+          name="TagFilterScreen"
+          component={TagFilterScreen}
+          options={{ title: "Выберите тег" }}
         />
         <Stack.Screen
           name="CreateSubscription"

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useLayoutEffect } from "react";
 import {
   View,
   Text,
@@ -13,60 +13,43 @@ import {
   deleteSubscription,
   initializeAuthToken,
 } from "../api/api";
-import { useIsFocused } from "@react-navigation/native";
+import {
+  useIsFocused,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
 import { navigationRef } from "../navigation/navigationService"; // Импорт navigationRef
+import HeaderMenu from "../components/HeaderMenu"; // <-- чтобы динамически рендерить в header
 
 const SubscriptionListScreen = () => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCost, setTotalCost] = useState(0);
 
+  // Для фильтра по тегам
+  const [availableTags, setAvailableTags] = useState([]); // Массив уникальных тегов
+  const [selectedTag, setSelectedTag] = useState(""); // Текущий выбранный тег
+
+  // Хук, чтобы узнать, фокусирован ли экран
   const isFocused = useIsFocused();
 
-  const fetchSubscriptions = async () => {
-    try {
-      logger.log("Начало загрузки подписок");
-      const token = await SecureStore.getItemAsync("authToken");
-      if (!token) {
-        logger.warn("Токен отсутствует, перенаправляем на экран логина");
-        Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
-        navigationRef.navigate("Login");
-        return;
-      }
+  // Хук, чтобы получить доступ к navigation (для setOptions)
+  const navigation = useNavigation();
 
-      setLoading(true);
-      const data = await getSubscriptions();
-      logger.log(
-        "Подписки успешно загружены. Количество подписок:",
-        data.length
-      );
-      setSubscriptions(data);
-      calculateTotalCost(data);
-    } catch (error) {
-      if (error.message === "SessionExpired") {
-        logger.warn("Сессия истекла, перенаправляем на экран логина");
-        Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
-        navigationRef.navigate("Login");
-      } else {
-        logger.error("Ошибка при загрузке подписок:", error);
-      }
-    } finally {
-      setLoading(false);
-      logger.log("Загрузка подписок завершена");
+  const route = useRoute(); // чтобы ловить params
+
+  // При возвращении с TagFilterScreen, если newSelectedTag есть -> применяем
+  useEffect(() => {
+    if (route.params?.newSelectedTag !== undefined) {
+      setSelectedTag(route.params.newSelectedTag);
+      // Чтобы не срабатывало повторно, сбрасываем
+      navigation.setParams({ newSelectedTag: undefined });
     }
-  };
+  }, [route.params?.newSelectedTag]);
 
-  const calculateTotalCost = (subscriptions) => {
-    logger.log("Начинаем расчет общей стоимости подписок");
-    const cost = subscriptions.reduce((sum, subscription) => {
-      return sum + (subscription.cost || 0);
-    }, 0);
-    setTotalCost(cost);
-    logger.log("Общая стоимость подписок:", cost);
-  };
-
+  // useEffect на фокус (загрузка подписок)
   useEffect(() => {
     const initializeData = async () => {
       try {
@@ -92,6 +75,85 @@ const SubscriptionListScreen = () => {
     }
   }, [isFocused]);
 
+  // Настраиваем HeaderMenu (headerRight)
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderMenu
+          navigation={navigation}
+          availableTags={availableTags}
+          selectedTag={selectedTag}
+          setSelectedTag={setSelectedTag}
+        />
+      ),
+    });
+  }, [navigation, availableTags, selectedTag]);
+
+  const fetchSubscriptions = async () => {
+    try {
+      logger.log("Начало загрузки подписок");
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) {
+        logger.warn("Токен отсутствует, перенаправляем на экран логина");
+        Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
+        navigationRef.navigate("Login");
+        return;
+      }
+
+      setLoading(true);
+      const data = await getSubscriptions();
+      logger.log(
+        "Подписки успешно загружены. Количество подписок:",
+        data.length
+      );
+      setSubscriptions(data);
+
+      // Собираем уникальные теги
+      const tagsSet = new Set();
+      data.forEach((sub) => {
+        if (sub.tag) {
+          tagsSet.add(sub.tag);
+        }
+      });
+      setAvailableTags(Array.from(tagsSet));
+
+      // По умолчанию считаем общую стоимость (без фильтра)
+      calculateTotalCost(data);
+    } catch (error) {
+      if (error.message === "SessionExpired") {
+        logger.warn("Сессия истекла, перенаправляем на экран логина");
+        Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
+        navigationRef.navigate("Login");
+      } else {
+        logger.error("Ошибка при загрузке подписок:", error);
+      }
+    } finally {
+      setLoading(false);
+      logger.log("Загрузка подписок завершена");
+    }
+  };
+
+  // Расчет стоимости
+  const calculateTotalCost = (subscriptions) => {
+    logger.log("Начинаем расчет общей стоимости подписок");
+    const cost = subscriptions.reduce((sum, subscription) => {
+      return sum + (subscription.cost || 0);
+    }, 0);
+    setTotalCost(cost);
+    logger.log("Общая стоимость подписок:", cost);
+  };
+
+  // Фильтрация подписок по тегу
+  const filteredSubscriptions = selectedTag
+    ? subscriptions.filter((sub) => sub.tag === selectedTag)
+    : subscriptions;
+
+  // При каждом изменении filteredSubscriptions пересчитываем стоимость
+  useEffect(() => {
+    calculateTotalCost(filteredSubscriptions);
+  }, [filteredSubscriptions]);
+
+  // Удаление
   const confirmDelete = (id) => {
     Alert.alert(
       "Удаление подписки",
@@ -137,6 +199,7 @@ const SubscriptionListScreen = () => {
     }
   };
 
+  // Добавление
   const handleAddSubscription = async () => {
     logger.log("Переход на экран создания подписки");
     const token = await SecureStore.getItemAsync("authToken");
@@ -154,6 +217,7 @@ const SubscriptionListScreen = () => {
     }
   };
 
+  // Рендер
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -164,14 +228,42 @@ const SubscriptionListScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Отображаем текущую общую стоимость (именно отфильтрованных) */}
       <View style={styles.totalCostContainer}>
         <Text style={styles.totalCostText}>
           Общая стоимость: {totalCost.toFixed(2)} ₽
         </Text>
+
+        {/* Показываем, какой тег выбран */}
+        {selectedTag ? (
+          <View style={{ marginTop: 5 }}>
+            <Text style={{ fontStyle: "italic" }}>
+              Отфильтровано по тегу:{" "}
+              <Text style={{ fontWeight: "bold" }}>{selectedTag}</Text>
+            </Text>
+            <TouchableOpacity
+              onPress={() => setSelectedTag("")}
+              style={{
+                marginTop: 5,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                backgroundColor: "#007bff",
+                borderRadius: 4,
+                alignSelf: "flex-start",
+              }}
+            >
+              <Text style={{ color: "#fff" }}>Сбросить фильтр</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Text style={{ fontStyle: "italic", marginTop: 5 }}>
+            Все подписки:
+          </Text>
+        )}
       </View>
 
       <FlatList
-        data={subscriptions}
+        data={filteredSubscriptions}
         keyExtractor={(item, index) =>
           item?.ID ? item.ID.toString() : index.toString()
         }
@@ -206,6 +298,12 @@ const SubscriptionListScreen = () => {
                 <Text style={styles.subscriptionPrice}>
                   {item?.cost.toFixed(2)} ₽
                 </Text>
+                {/* Показываем тег, если есть */}
+                {item?.tag ? (
+                  <Text style={{ fontSize: 14, color: "#444", marginTop: 4 }}>
+                    Тег: {item.tag}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
 
               <View style={styles.buttonContainer}>

@@ -8,10 +8,12 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/SergeyMilch/pay_aware/internal/logger"
 	"github.com/SergeyMilch/pay_aware/pkg/db"
 	"github.com/SergeyMilch/pay_aware/pkg/models"
+	"github.com/SergeyMilch/pay_aware/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -44,6 +46,17 @@ func CreateSubscription(c *gin.Context) {
 
     // Устанавливаем userID в модель подписки
     subscription.UserID = userIDInt
+
+	// Разрешаем пустую строку. Если не пустая — проверяем, не длиннее 20 символов
+	// и чтобы не содержала пробелов.
+	if utf8.RuneCountInString(subscription.Tag) > 20 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tag must be at most 20 characters"})
+		return
+	}
+	if utils.ContainsSpace(subscription.Tag) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tag must be a single word (no spaces allowed)."})
+		return
+	}
 
     // Здесь можно проверить обязательные поля, например:
     // - ServiceName не должен быть пустым
@@ -154,6 +167,15 @@ func UpdateSubscription(c *gin.Context) {
     // Приведение времени к UTC, чтобы избежать ошибок с часовыми поясами
     nextPaymentDateUTC := updatedData.NextPaymentDate.UTC()
 
+    if utf8.RuneCountInString(updatedData.Tag) > 20 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tag must be at most 20 characters"})
+		return
+	}
+	if utils.ContainsSpace(updatedData.Tag) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tag must be a single word (no spaces allowed)."})
+		return
+	}
+
     // Обновляем поля existingSubscription (объект, который взяли из БД) новыми значениями
     // Поле existingSubscription.ID при этом останется прежним, то есть мы меняем только данные
     // (ServiceName, Cost, NextPaymentDate, NotificationOffset и RecurrenceType).
@@ -165,6 +187,7 @@ func UpdateSubscription(c *gin.Context) {
     // Обновляем поле RecurrenceType
     // (если пользователь на фронте выбрал "monthly"/"yearly"/"" и отправил это, мы сохраним)
     existingSubscription.RecurrenceType = updatedData.RecurrenceType
+    existingSubscription.Tag = updatedData.Tag // <-- обновляем тег
 
     // Пересчитываем дату и время уведомления
     if existingSubscription.NotificationOffset > 0 {

@@ -69,3 +69,13 @@ func IsValidPassword(password string) bool {
 
 	return false
 }
+
+// containsSpace - функция для проверки пробелов
+func ContainsSpace(s string) bool {
+	for _, r := range s {
+		if r == ' ' {
+			return true
+		}
+	}
+	return false
+}
