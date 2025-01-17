@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -21,6 +20,7 @@ import {
   sendDeviceTokenToServer,
 } from "../utils/notifications";
 import RadioButton from "../components/RadioButton";
+import { useRoute } from "@react-navigation/native";
 
 const CreateSubscriptionScreen = ({ navigation }) => {
   const [name, setName] = useState("");
@@ -37,6 +37,12 @@ const CreateSubscriptionScreen = ({ navigation }) => {
   const [recurrenceType, setRecurrenceType] = useState("");
   // Поле для ввода тега
   const [tag, setTag] = useState(""); // <-- по умолчанию пусто
+
+  const route = useRoute();
+  // Достаем массив тегов (по умолчанию пустой если нет)
+  const { availableTags = [] } = route.params || {};
+
+  const [suggestions, setSuggestions] = useState([]); // список подсказок
 
   // Проверка токена при загрузке экрана
   useEffect(() => {
@@ -267,6 +273,7 @@ const CreateSubscriptionScreen = ({ navigation }) => {
     let trimmed = input.trim();
     if (trimmed === "") {
       setTag("");
+      setSuggestions([]); // ничего не подсказываем
       return;
     }
 
@@ -285,6 +292,13 @@ const CreateSubscriptionScreen = ({ navigation }) => {
       noSpaces = noSpaces.slice(0, 20);
     }
     setTag(noSpaces);
+
+    // Фильтруем теги: startsWith (регистронезависимо)
+    const filtered = availableTags.filter((t) =>
+      t.toLowerCase().startsWith(noSpaces.toLowerCase())
+    );
+    // Показываем максимум 5
+    setSuggestions(filtered.slice(0, 5));
   };
 
   return (
@@ -401,6 +415,36 @@ const CreateSubscriptionScreen = ({ navigation }) => {
 
         {/* Поле для тега */}
         <Text style={styles.label}>Тег (возможность поиска):</Text>
+        {/* Отображаем список подсказок */}
+        {suggestions.length > 0 && (
+          <View
+            style={{
+              backgroundColor: "#f0f0f0",
+              borderWidth: 1, // Установите тонкую рамку
+              borderColor: "#ccc", // Цвет рамки
+              borderRadius: 4, // Опционально: скругление углов
+              marginTop: 5, // Опционально: отступ сверху
+            }}
+          >
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={item}
+                onPress={() => {
+                  // При выборе ставим tag = item, скрываем подсказки
+                  setTag(item);
+                  setSuggestions([]);
+                }}
+                style={{
+                  padding: 8,
+                  borderBottomWidth: 0.5, // Опционально: разделитель между элементами
+                  borderBottomColor: "#ddd", // Цвет разделителя
+                }}
+              >
+                <Text style={{ color: "gray" }}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <TextInput
           style={styles.input}
           value={tag}

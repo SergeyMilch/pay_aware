@@ -213,7 +213,9 @@ const SubscriptionListScreen = () => {
     }
 
     if (navigationRef.isReady()) {
-      navigationRef.navigate("CreateSubscription");
+      navigationRef.navigate("CreateSubscription", {
+        availableTags: availableTags, // <-- передаём availableTags вместе
+      });
     }
   };
 
@@ -316,6 +318,7 @@ const SubscriptionListScreen = () => {
                     navigationRef.isReady() &&
                       navigationRef.navigate("EditSubscription", {
                         subscriptionId: item.ID,
+                        availableTags: availableTags, // <-- то же самое передаём availableTags
                       });
                   }}
                 >

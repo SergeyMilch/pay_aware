@@ -11,13 +11,14 @@ import {
   ScrollView,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
 import { getSubscriptionById, updateSubscription } from "../api/api";
 import logger from "../utils/logger";
 import { isValidName, isValidPrice, isValidTag } from "../utils/validation"; // Импорт функций валидации
 import RadioButton from "../components/RadioButton";
 
-const EditSubscriptionScreen = ({ route, navigation }) => {
+const EditSubscriptionScreen = ({ navigation }) => {
+  const route = useRoute();
   const { subscriptionId } = route.params;
   const [loading, setLoading] = useState(true);
   const [serviceName, setServiceName] = useState("");
@@ -31,8 +32,10 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
   const [recurrenceType, setRecurrenceType] = useState("");
   const [error, setError] = useState("");
 
-  // Новое состояние для тега
+  const { availableTags = [] } = route.params || {};
+
   const [tag, setTag] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
 
   const handleCostChange = (text) => {
     const formattedText = text.replace(",", ".");
@@ -202,6 +205,11 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
       noSpaces = noSpaces.slice(0, 20);
     }
     setTag(noSpaces);
+
+    const filtered = availableTags.filter((t) =>
+      t.toLowerCase().startsWith(noSpaces.toLowerCase())
+    );
+    setSuggestions(filtered.slice(0, 5));
   };
 
   if (loading) {
@@ -345,6 +353,36 @@ const EditSubscriptionScreen = ({ route, navigation }) => {
 
         {/* Тег */}
         <Text style={styles.label}>Тег (возможность поиска):</Text>
+        {/* Отображаем список подсказок */}
+        {suggestions.length > 0 && (
+          <View
+            style={{
+              backgroundColor: "#f0f0f0",
+              borderWidth: 1, // Установите тонкую рамку
+              borderColor: "#ccc", // Цвет рамки
+              borderRadius: 4, // Опционально: скругление углов
+              marginTop: 5, // Опционально: отступ сверху
+            }}
+          >
+            {suggestions.map((item) => (
+              <TouchableOpacity
+                key={item}
+                onPress={() => {
+                  // При выборе ставим tag = item, скрываем подсказки
+                  setTag(item);
+                  setSuggestions([]);
+                }}
+                style={{
+                  padding: 8,
+                  borderBottomWidth: 0.5, // Опционально: разделитель между элементами
+                  borderBottomColor: "#ddd", // Цвет разделителя
+                }}
+              >
+                <Text style={{ color: "gray" }}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
         <TextInput
           style={styles.input}
           value={tag}
