@@ -18,12 +18,20 @@ const TagFilterScreen = () => {
   const navigation = useNavigation();
 
   // Достаем из route.params список тегов и текущий выбранный
-  const { availableTags = [], selectedTag = "" } = route.params || {};
+  const {
+    availableTags = [],
+    selectedTag = "",
+    skipRefresh = false,
+  } = route.params || {};
 
   // Функция выбора тега
   const handleSelectTag = (tag) => {
     // Возвращаемся на SubscriptionList, передавая newSelectedTag
-    navigation.navigate("SubscriptionList", { newSelectedTag: tag });
+    navigation.navigate("SubscriptionList", {
+      // Возвращаемся на SubscriptionList, передавая новый тег и тот же skipRefresh
+      newSelectedTag: tag,
+      skipRefresh,
+    });
   };
 
   const allTags = ["", ...availableTags]; // "" означает "Все"

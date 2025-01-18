@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Keyboard,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
@@ -36,6 +37,8 @@ const EditSubscriptionScreen = ({ navigation }) => {
 
   const [tag, setTag] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+
+  const tagInputRef = useRef(null); // Создаем реф для TextInput
 
   const handleCostChange = (text) => {
     const formattedText = text.replace(",", ".");
@@ -224,6 +227,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
     <ScrollView
       style={{ flex: 1 }}
       contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled" // Добавлено
     >
       <View style={styles.container}>
         <Text style={styles.label}>Название сервиса</Text>
@@ -277,7 +281,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
         />
 
         {/* Новый блок для выбора времени */}
-        <Text style={styles.label}>Время следующего платежа</Text>
+        <Text style={styles.label}>Время напоминания</Text>
         <TouchableOpacity onPress={showTimePicker}>
           <TextInput
             style={styles.input}
@@ -289,7 +293,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
                   })
                 : ""
             }
-            placeholder="Время следующего платежа"
+            placeholder="Выберите время напоминания"
             editable={false}
           />
         </TouchableOpacity>
@@ -371,6 +375,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
                   // При выборе ставим tag = item, скрываем подсказки
                   setTag(item);
                   setSuggestions([]);
+                  Keyboard.dismiss(); // Скрываем клавиатуру
                 }}
                 style={{
                   padding: 8,
@@ -384,6 +389,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
           </View>
         )}
         <TextInput
+          ref={tagInputRef} // Присваиваем реф
           style={styles.input}
           value={tag}
           onChangeText={handleTagChange}
@@ -456,11 +462,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     padding: 12,
     borderRadius: 4,
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#d5d2ec",
     alignItems: "center",
   },
   saveButtonText: {
-    color: "#fff",
+    color: "#000",
     fontSize: 16,
   },
   errorText: {

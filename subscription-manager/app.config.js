@@ -1,6 +1,6 @@
 export default {
   expo: {
-    name: "subscription-manager",
+    name: "Pay Aware",
     slug: "subscription-manager",
     version: "1.0.0",
     scheme: "payawareapp", // схема приложения, используется для deeplink

@@ -71,7 +71,15 @@ const SubscriptionListScreen = () => {
     };
 
     if (isFocused) {
-      initializeData();
+      // Если skipRefresh === true, то пропускаем перезагрузку
+      if (route.params?.skipRefresh) {
+        // Например, просто сбросим этот параметр, чтобы он не "застрял"
+        navigation.setParams({ skipRefresh: false });
+        // И не вызываем fetchSubscriptions -> значит не будет мигать
+      } else {
+        // Обычная логика, которая была: грузим подписки
+        initializeData();
+      }
     }
   }, [isFocused]);
 
@@ -101,6 +109,7 @@ const SubscriptionListScreen = () => {
       }
 
       setLoading(true);
+
       const data = await getSubscriptions();
       logger.log(
         "Подписки успешно загружены. Количество подписок:",
@@ -237,7 +246,7 @@ const SubscriptionListScreen = () => {
         </Text>
 
         {/* Показываем, какой тег выбран */}
-        {selectedTag ? (
+        {selectedTag && (
           <View style={{ marginTop: 5 }}>
             <Text style={{ fontStyle: "italic" }}>
               Отфильтровано по тегу:{" "}
@@ -249,7 +258,7 @@ const SubscriptionListScreen = () => {
                 marginTop: 5,
                 paddingHorizontal: 8,
                 paddingVertical: 4,
-                backgroundColor: "#007bff",
+                backgroundColor: "#7b6dae",
                 borderRadius: 4,
                 alignSelf: "flex-start",
               }}
@@ -257,10 +266,6 @@ const SubscriptionListScreen = () => {
               <Text style={{ color: "#fff" }}>Сбросить фильтр</Text>
             </TouchableOpacity>
           </View>
-        ) : (
-          <Text style={{ fontStyle: "italic", marginTop: 5 }}>
-            Все подписки:
-          </Text>
         )}
       </View>
 
@@ -360,10 +365,10 @@ const styles = StyleSheet.create({
   totalCostContainer: {
     alignSelf: "center",
     padding: 12,
-    backgroundColor: "#FFD700",
+    backgroundColor: "#d5d2ec",
     borderRadius: 8,
     marginBottom: 16,
-    width: "80%",
+    // width: "80%",
   },
   totalCostText: {
     fontSize: 20,
@@ -420,10 +425,10 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   editButton: {
-    backgroundColor: "#007bff",
+    backgroundColor: "#7b6dae",
   },
   deleteButton: {
-    backgroundColor: "red",
+    backgroundColor: "tomato",
   },
   buttonText: {
     color: "#fff",
@@ -433,7 +438,7 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: "#FFD700",
+    backgroundColor: "#d5d2ec",
     borderRadius: 8,
     alignItems: "center",
   },
