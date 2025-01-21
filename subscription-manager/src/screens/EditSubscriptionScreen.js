@@ -202,6 +202,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
     let trimmed = input.trim();
     if (trimmed === "") {
       setTag("");
+      setSuggestions([]); // ничего не подсказываем
       return;
     }
 

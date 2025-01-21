@@ -329,41 +329,48 @@ const SubscriptionListScreen = () => {
                   {item?.cost.toFixed(2)} ₽
                 </Text>
                 {/* Показываем тег и дату платежа, если есть */}
-                {item?.tag || item.next_payment_date ? (
+                {(item?.tag || item.next_payment_date) && (
                   <View style={styles.tagDateContainer}>
-                    {item.tag && (
-                      <View style={styles.tagContainer}>
-                        <Icon
-                          name="bookmark-outline"
-                          size={16}
-                          color="#444"
-                          style={styles.dateIcon}
-                        />
-                        <Text style={styles.tagText}>{item.tag}</Text>
-                      </View>
-                    )}
-                    {item.next_payment_date && (
-                      <View style={styles.dateContainer}>
-                        <Icon
-                          name="card-outline"
-                          size={16}
-                          color="#444"
-                          style={styles.dateIcon}
-                        />
-                        <Text style={styles.dateText}>
-                          {new Date(item.next_payment_date).toLocaleDateString(
-                            "ru-RU",
-                            {
+                    <View style={styles.tagContainer}>
+                      {item.tag ? (
+                        <>
+                          <Icon
+                            name="bookmark-outline"
+                            size={16}
+                            color="#444"
+                            style={styles.iconStyle}
+                          />
+                          <Text style={styles.tagText}>{item.tag}</Text>
+                        </>
+                      ) : (
+                        <View style={styles.placeholder} />
+                      )}
+                    </View>
+                    <View style={styles.dateContainer}>
+                      {item.next_payment_date ? (
+                        <>
+                          <Icon
+                            name="card-outline"
+                            size={16}
+                            color="#444"
+                            style={styles.iconStyle}
+                          />
+                          <Text style={styles.dateText}>
+                            {new Date(
+                              item.next_payment_date
+                            ).toLocaleDateString("ru-RU", {
                               year: "numeric",
                               month: "2-digit",
                               day: "2-digit",
-                            }
-                          )}
-                        </Text>
-                      </View>
-                    )}
+                            })}
+                          </Text>
+                        </>
+                      ) : (
+                        <View style={styles.placeholder} />
+                      )}
+                    </View>
                   </View>
-                ) : null}
+                )}
               </TouchableOpacity>
 
               <View style={styles.buttonContainer}>
@@ -502,19 +509,20 @@ const styles = StyleSheet.create({
   },
   tagDateContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     marginTop: 4,
   },
   tagContainer: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1, // Занимает всё доступное пространство слева
   },
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
+    // flex: 0, // По умолчанию flex: 0
   },
-  dateIcon: {
+  iconStyle: {
     marginRight: 4,
   },
   tagText: {
@@ -524,6 +532,10 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 14,
     color: "#444",
+  },
+  placeholder: {
+    width: 20, // Ширина иконки, чтобы сохранить выравнивание
+    height: 20,
   },
 });
 
