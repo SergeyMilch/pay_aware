@@ -39,11 +39,17 @@ func ProcessKafkaMessage(notification models.Notification) {
         return
     }
 
-    // Сформировать сообщение с названием подписки
-    message := fmt.Sprintf("Не забудьте оплатить💳\n• Сервис: «%s»\n• Стоимость: %v ₽", 
-    strings.ToUpper(subscription.ServiceName), 
-    subscription.Cost)
-    // message := fmt.Sprintf("Не забудьте оплатить подписку на **%s** стоимостью **%v ₽**!", subscription.ServiceName, subscription.Cost)
+    // Сформировать сообщение с учетом предпочтений пользователя
+    var message string
+    if subscription.HighPriority {
+        message = fmt.Sprintf("Не забудьте оплатить❗\n• Сервис: «%s»\n• Стоимость: %v ₽", 
+            strings.ToUpper(subscription.ServiceName), 
+            subscription.Cost)
+    } else {
+        message = fmt.Sprintf("Не забудьте оплатить\n• Сервис: «%s»\n• Стоимость: %v ₽", 
+            strings.ToUpper(subscription.ServiceName), 
+            subscription.Cost)
+    }
 
     // Добавляем случайную задержку (джиттер) перед отправкой уведомления
     jitter := time.Duration(rand.Intn(120)) * time.Second
@@ -52,7 +58,7 @@ func ProcessKafkaMessage(notification models.Notification) {
     // Используем time.AfterFunc для вызова функции с задержкой
     time.AfterFunc(jitter, func() {
         // Отправка push-уведомления
-        if err := SendPushNotification(user.DeviceToken, message); err != nil {
+        if err := SendPushNotification(user.DeviceToken, message, subscription.HighPriority); err != nil {
             logger.Error("Не удалось отправить уведомление", "userID", user.ID, "error", err)
             // Сохраняем неудачную отправку
             notification.Status = "failed"

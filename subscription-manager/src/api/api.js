@@ -8,7 +8,7 @@ import { API_URL } from "@env";
 // Настройка экземпляра axios с базовым URL и заголовками
 const api = axios.create({
   baseURL: API_URL,
-  // baseURL: "https://4a1e-62-4-40-184.ngrok-free.app",
+  // baseURL: "https://2df8-62-4-57-157.ngrok-free.app",
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
@@ -495,4 +495,14 @@ export const markNotificationAsRead = async (notificationId) => {
     logger.error("Ошибка при отметке уведомления как прочитанного:", error);
     throw error;
   }
+};
+
+// "Выйти" (обнулить токен устройства и т.п.)
+export const logoutUser = async () => {
+  return api.put("/users/logout");
+};
+
+// "Удалить аккаунт" (полное удаление пользователя)
+export const deleteUserAccount = async () => {
+  return api.delete("/users");
 };

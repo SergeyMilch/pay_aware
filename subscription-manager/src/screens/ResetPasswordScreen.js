@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  Alert,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { resetPassword } from "../api/api";
 import * as SecureStore from "expo-secure-store";
 import { IsValidPassword } from "../utils/validation";
@@ -91,7 +98,12 @@ const ResetPasswordScreen = ({ navigation, route }) => {
         }}
         secureTextEntry
       />
-      <Button title="Сбросить пароль" onPress={handleResetPassword} />
+      <TouchableOpacity
+        onPress={handleResetPassword}
+        style={styles.resetButton}
+      >
+        <Text style={styles.resetButtonText}>Сбросить пароль</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -113,6 +125,17 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
     borderRadius: 5,
+  },
+  resetButton: {
+    backgroundColor: "#7b6dae", // Цвет кнопки
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  resetButtonText: {
+    color: "#fff", // Цвет текста
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

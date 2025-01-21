@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   Alert,
   TouchableOpacity,
   StyleSheet,
@@ -106,7 +105,9 @@ const EnterPinScreen = ({ navigation }) => {
         maxLength={4}
         style={styles.input}
       />
-      <Button title="Войти" onPress={handleEnterPin} />
+      <TouchableOpacity onPress={handleEnterPin} style={styles.loginButton}>
+        <Text style={styles.loginButtonText}>Войти</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         onPress={handleForgotPin}
@@ -135,6 +136,18 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     width: "80%",
     textAlign: "center",
+  },
+  loginButton: {
+    backgroundColor: "#7b6dae", // Цвет кнопки
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  loginButtonText: {
+    color: "#fff", // Цвет текста
+    fontSize: 16,
+    fontWeight: "bold",
   },
   forgotPinButton: {
     marginTop: 16,

@@ -98,6 +98,8 @@ func main() {
 		authorized.POST("/set-pin", handlers.SetPin)
 		authorized.GET("/api/notifications", handlers.GetUserNotifications)
 		authorized.POST("/api/notifications/:id/read", handlers.MarkNotificationAsRead)
+		authorized.PUT("/users/logout", handlers.LogoutUser)
+		authorized.DELETE("/users", handlers.DeleteUserAccount)
 		// При больших нагрузках на клиент, можно будет перейти на серверный подход
 		// authorized.GET("/subscriptions/total-cost", handlers.GetTotalCost)   <-- расчет общей стоимости реализован на фронтенде
 	}

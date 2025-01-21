@@ -23,11 +23,25 @@ const SubscriptionDetailScreen = ({ route }) => {
         Стоимость: {subscription.cost.toFixed(2)} ₽
       </Text>
       <Text style={styles.detail}>
-        Дата создания: {new Date(subscription.CreatedAt).toLocaleString()}
+        Следующий платеж:{" "}
+        {new Date(subscription.next_payment_date).toLocaleString("ru-RU", {
+          // Убираем секунды
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </Text>
       <Text style={styles.detail}>
-        Следующий платеж:{" "}
-        {new Date(subscription.next_payment_date).toLocaleString()}
+        Дата создания:{" "}
+        {new Date(subscription.CreatedAt).toLocaleString("ru-RU", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
       </Text>
     </View>
   );

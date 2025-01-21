@@ -174,6 +174,14 @@ const RegisterScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       )}
+      {/* Ссылка на экран логина */}
+      <View style={styles.loginLinkContainer}>
+        <Text>Уже есть аккаунт?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.loginLinkText}> Войти</Text>
+        </TouchableOpacity>
+      </View>
+
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </View>
   );
@@ -198,7 +206,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   button: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#7b6dae",
     padding: 12,
     borderRadius: 4,
     alignItems: "center",
@@ -211,6 +219,15 @@ const styles = StyleSheet.create({
     color: "red",
     marginTop: 15,
     textAlign: "center",
+  },
+  loginLinkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 35,
+  },
+  loginLinkText: {
+    color: "#007BFF",
+    fontWeight: "regular",
   },
 });
 

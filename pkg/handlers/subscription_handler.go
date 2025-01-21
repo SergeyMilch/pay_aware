@@ -188,6 +188,7 @@ func UpdateSubscription(c *gin.Context) {
     // (если пользователь на фронте выбрал "monthly"/"yearly"/"" и отправил это, мы сохраним)
     existingSubscription.RecurrenceType = updatedData.RecurrenceType
     existingSubscription.Tag = updatedData.Tag // <-- обновляем тег
+    existingSubscription.HighPriority = updatedData.HighPriority // Обновляем поле заметности
 
     // Пересчитываем дату и время уведомления
     if existingSubscription.NotificationOffset > 0 {

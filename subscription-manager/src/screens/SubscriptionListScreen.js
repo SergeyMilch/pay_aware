@@ -22,6 +22,7 @@ import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
 import { navigationRef } from "../navigation/navigationService"; // Импорт navigationRef
 import HeaderMenu from "../components/HeaderMenu"; // <-- чтобы динамически рендерить в header
+import Icon from "react-native-vector-icons/Ionicons";
 
 const SubscriptionListScreen = () => {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -39,6 +40,24 @@ const SubscriptionListScreen = () => {
   const navigation = useNavigation();
 
   const route = useRoute(); // чтобы ловить params
+
+  // Функция сортировки подписок по дате платежа
+  const sortSubscriptionsByDate = (subscriptions, order = "asc") => {
+    return subscriptions.sort((a, b) => {
+      const dateA = a.next_payment_date
+        ? new Date(a.next_payment_date)
+        : new Date(0);
+      const dateB = b.next_payment_date
+        ? new Date(b.next_payment_date)
+        : new Date(0);
+
+      if (order === "asc") {
+        return dateA - dateB;
+      } else {
+        return dateB - dateA;
+      }
+    });
+  };
 
   // При возвращении с TagFilterScreen, если newSelectedTag есть -> применяем
   useEffect(() => {
@@ -116,6 +135,10 @@ const SubscriptionListScreen = () => {
         data.length
       );
       setSubscriptions(data);
+
+      // Сортируем подписки по дате платежа (по возрастанию)
+      const sortedData = sortSubscriptionsByDate([...data], "asc"); // Копируем массив, чтобы избежать мутации оригинала
+      setSubscriptions(sortedData);
 
       // Собираем уникальные теги
       const tagsSet = new Set();
@@ -305,11 +328,41 @@ const SubscriptionListScreen = () => {
                 <Text style={styles.subscriptionPrice}>
                   {item?.cost.toFixed(2)} ₽
                 </Text>
-                {/* Показываем тег, если есть */}
-                {item?.tag ? (
-                  <Text style={{ fontSize: 14, color: "#444", marginTop: 4 }}>
-                    Тег: {item.tag}
-                  </Text>
+                {/* Показываем тег и дату платежа, если есть */}
+                {item?.tag || item.next_payment_date ? (
+                  <View style={styles.tagDateContainer}>
+                    {item.tag && (
+                      <View style={styles.tagContainer}>
+                        <Icon
+                          name="bookmark-outline"
+                          size={16}
+                          color="#444"
+                          style={styles.dateIcon}
+                        />
+                        <Text style={styles.tagText}>{item.tag}</Text>
+                      </View>
+                    )}
+                    {item.next_payment_date && (
+                      <View style={styles.dateContainer}>
+                        <Icon
+                          name="card-outline"
+                          size={16}
+                          color="#444"
+                          style={styles.dateIcon}
+                        />
+                        <Text style={styles.dateText}>
+                          {new Date(item.next_payment_date).toLocaleDateString(
+                            "ru-RU",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                            }
+                          )}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 ) : null}
               </TouchableOpacity>
 
@@ -446,6 +499,31 @@ const styles = StyleSheet.create({
     color: "#000",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  tagDateContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  tagContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  dateIcon: {
+    marginRight: 4,
+  },
+  tagText: {
+    fontSize: 14,
+    color: "#444",
+  },
+  dateText: {
+    fontSize: 14,
+    color: "#444",
   },
 });
 

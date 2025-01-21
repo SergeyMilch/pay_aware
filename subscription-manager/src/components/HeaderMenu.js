@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Alert } from "react-native";
 import { Menu, Button } from "react-native-paper";
+import * as SecureStore from "expo-secure-store";
+import { logoutUser, deleteUserAccount } from "../api/api";
 
 /**
  * Компонент HeaderMenu.
@@ -15,6 +17,79 @@ const HeaderMenu = ({ navigation, availableTags, selectedTag }) => {
 
   const openMainMenu = () => setMainMenuVisible(true);
   const closeMainMenu = () => setMainMenuVisible(false);
+
+  // Обработчик логаута
+  const handleLogout = async () => {
+    try {
+      closeMainMenu();
+      // Подтверждение удаления (диалог)
+      Alert.alert("Подтвердите выход", "Вы действительно хотите выйти?", [
+        { text: "Отмена", style: "cancel" },
+        {
+          text: "OK",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // Вызываем логаут на сервере
+              await logoutUser();
+
+              // Чистим локальные данные
+              await SecureStore.deleteItemAsync("authToken");
+              // await SecureStore.deleteItemAsync("userId");
+              // await SecureStore.deleteItemAsync("deviceToken");
+              // await SecureStore.deleteItemAsync("pinCode");
+
+              // Переходим на экран логина (или "Register", как хотите)
+              navigation.navigate("EnterPinScreen");
+            } catch (error) {
+              Alert.alert("Ошибка", "Не удалось выйти");
+            }
+          },
+        },
+      ]);
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось выйти");
+    }
+  };
+
+  // Обработчик удаления аккаунта
+  const handleDeleteAccount = async () => {
+    try {
+      closeMainMenu();
+
+      // Подтверждение удаления (диалог)
+      Alert.alert(
+        "Подтвердите удаление",
+        "Вы действительно хотите удалить аккаунт и все данные?",
+        [
+          { text: "Отмена", style: "cancel" },
+          {
+            text: "OK",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                // Запрос на сервер
+                await deleteUserAccount();
+
+                // Локально всё стираем
+                await SecureStore.deleteItemAsync("authToken");
+                await SecureStore.deleteItemAsync("userId");
+                await SecureStore.deleteItemAsync("deviceToken");
+                await SecureStore.deleteItemAsync("pinCode");
+
+                // Переходим на экран регистрации (или логина)
+                navigation.navigate("Register");
+              } catch (err) {
+                Alert.alert("Ошибка", "Не удалось удалить аккаунт");
+              }
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert("Ошибка", "Не удалось удалить аккаунт");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -56,6 +131,20 @@ const HeaderMenu = ({ navigation, availableTags, selectedTag }) => {
             }}
             title="Фильтр по тегам"
           />
+          {/* --- Разделитель (опционально) --- */}
+          <Menu.Item
+            // Можно стилизовать как divider, но в React Native Paper для Menu.Item
+            // нет встроенного разделителя, поэтому можно просто
+            // добавить Menu.Item с "----"
+            title="------------------------------"
+            disabled={true}
+          />
+
+          {/* 3. Выйти */}
+          <Menu.Item onPress={handleLogout} title="Выйти" />
+
+          {/* 4. Удалить аккаунт */}
+          <Menu.Item onPress={handleDeleteAccount} title="Удалить аккаунт" />
         </Menu>
       </View>
     </View>

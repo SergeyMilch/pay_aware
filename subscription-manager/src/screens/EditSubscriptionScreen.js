@@ -10,6 +10,9 @@ import {
   Alert,
   ScrollView,
   Keyboard,
+  Switch,
+  Modal,
+  Pressable,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
@@ -17,6 +20,7 @@ import { getSubscriptionById, updateSubscription } from "../api/api";
 import logger from "../utils/logger";
 import { isValidName, isValidPrice, isValidTag } from "../utils/validation"; // Импорт функций валидации
 import RadioButton from "../components/RadioButton";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
 
 const EditSubscriptionScreen = ({ navigation }) => {
   const route = useRoute();
@@ -40,6 +44,12 @@ const EditSubscriptionScreen = ({ navigation }) => {
 
   const tagInputRef = useRef(null); // Создаем реф для TextInput
 
+  // Состояние для High Priority
+  const [highPriority, setHighPriority] = useState(false);
+
+  // Состояние для отображения модального окна подсказки
+  const [isTooltipVisible, setTooltipVisible] = useState(false);
+
   const handleCostChange = (text) => {
     const formattedText = text.replace(",", ".");
     if (isValidPrice(formattedText)) {
@@ -58,6 +68,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
           setNotificationOffset(data.notification_offset);
           setRecurrenceType(data.recurrence_type || ""); // Считываем периодичность
           setTag(data.tag || ""); // <-- загружаем тег
+          setHighPriority(data.high_priority || false); // <-- загружаем high_priority
           logger.log("Подписка загружена успешно:", data);
         } catch (error) {
           logger.error("Ошибка при загрузке подписки:", error);
@@ -123,6 +134,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
         notification_offset: notificationOffset,
         recurrence_type: recurrenceType, // <-- передаем поле периодичности
         tag: tag, // <-- передаём тег
+        high_priority: highPriority, // <-- передаем high_priority
       };
 
       await updateSubscription(subscriptionId, updatedData);
@@ -399,6 +411,50 @@ const EditSubscriptionScreen = ({ navigation }) => {
           {tag.length} / 20 символов
         </Text>
 
+        {/* Добавляем переключатель для High Priority с иконкой подсказки */}
+        <View style={styles.checkboxContainer}>
+          <Text style={styles.checkboxLabel}>Более заметное уведомление</Text>
+          <View style={styles.switchContainer}>
+            <Switch
+              value={highPriority}
+              onValueChange={(value) => setHighPriority(value)}
+            />
+            <TouchableOpacity
+              onPress={() => setTooltipVisible(true)}
+              style={styles.infoIcon}
+            >
+              <MaterialIcons name="info-outline" size={24} color="#555" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Модальное окно подсказки */}
+        <Modal
+          transparent={true}
+          animationType="fade"
+          visible={isTooltipVisible}
+          onRequestClose={() => setTooltipVisible(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setTooltipVisible(false)}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalText}>
+                Включив эту опцию, вы будете получать более заметные уведомления
+                о предстоящих платежах. Такие уведомления будут содержать иконки
+                или специальные символы для привлечения вашего внимания.
+              </Text>
+              <TouchableOpacity
+                onPress={() => setTooltipVisible(false)}
+                style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>Закрыть</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -457,6 +513,54 @@ const styles = StyleSheet.create({
   radioGroup: {
     flexDirection: "column",
     marginBottom: 16,
+  },
+  checkboxContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingHorizontal: 0,
+  },
+  checkboxLabel: {
+    fontSize: 16,
+  },
+  switchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  infoIcon: {
+    marginLeft: 4,
+    marginRight: 6,
+  },
+  // Стили для модального окна
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)", // Полупрозрачный фон
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+    color: "#333",
+  },
+  closeButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "#d5d2ec",
+    borderRadius: 4,
+  },
+  closeButtonText: {
+    color: "#000",
+    fontSize: 16,
   },
   saveButton: {
     marginTop: 20,

@@ -371,3 +371,67 @@ func LoginWithPin(c *gin.Context) {
         "user_id": user.ID,
     })
 }
+
+// LogoutUser сбрасывает device_token у пользователя, чтобы пуши не приходили
+func LogoutUser(c *gin.Context) {
+    userID, exists := c.Get("userID")
+    if !exists {
+        logger.Warn("User ID is missing in context")
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    userIDInt, ok := userID.(int)
+    if !ok {
+        logger.Error("Invalid user ID type in context")
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+        return
+    }
+
+    // Ищем пользователя по userIDInt
+    var user models.User
+    if err := db.GormDB.First(&user, userIDInt).Error; err != nil {
+        logger.Warn("User not found during logout", "userID", userIDInt)
+        c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+        return
+    }
+
+    // Обнуляем DeviceToken
+    user.DeviceToken = ""
+    if err := db.GormDB.Save(&user).Error; err != nil {
+        logger.Error("Failed to logout (clear device token)", "userID", userIDInt, "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to logout"})
+        return
+    }
+
+    // Дополнительно, если нужно - можно добавить принудительное истечение JWT-токена,
+    // но у вас это, скорее всего, просто на клиенте удалится.
+
+    c.JSON(http.StatusOK, gin.H{"message": "Logout successful"})
+}
+
+// DeleteUserAccount удаляет аккаунт пользователя и связанные записи
+func DeleteUserAccount(c *gin.Context) {
+    userID, exists := c.Get("userID")
+    if !exists {
+        logger.Warn("User ID is missing in context")
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+
+    userIDInt, ok := userID.(int)
+    if !ok {
+        logger.Error("Invalid user ID type in context")
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+        return
+    }
+
+    // Удаляем пользователя целиком
+    if err := db.GormDB.Delete(&models.User{}, userIDInt).Error; err != nil {
+        logger.Error("Failed to delete user account", "userID", userIDInt, "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user account"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "User account deleted successfully"})
+}

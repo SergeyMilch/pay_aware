@@ -3,9 +3,9 @@ import {
   View,
   Text,
   TextInput,
-  Button,
   Alert,
   StyleSheet,
+  TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
 import { requestPasswordReset } from "../api/api";
@@ -76,11 +76,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
       {isLoading ? (
         <ActivityIndicator size="large" color="#0000ff" />
       ) : (
-        <Button
-          title="Сбросить пароль"
+        <TouchableOpacity
           onPress={handlePasswordReset}
+          style={styles.resetButton}
           disabled={isLoading}
-        />
+        >
+          <Text style={styles.resetButtonText}>Сбросить пароль</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -103,6 +105,17 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
     borderRadius: 5,
+  },
+  resetButton: {
+    backgroundColor: "#7b6dae", // Цвет кнопки
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  resetButtonText: {
+    color: "#fff", // Цвет текста
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

@@ -4,14 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/SergeyMilch/pay_aware/internal/config"
 	"github.com/SergeyMilch/pay_aware/internal/logger"
+	"github.com/SergeyMilch/pay_aware/pkg/db"
+	"github.com/SergeyMilch/pay_aware/pkg/models"
 	"github.com/SergeyMilch/pay_aware/pkg/utils"
 	expo "github.com/oliveroneill/exponent-server-sdk-golang/sdk"
+	"gorm.io/gorm"
 )
 
 // KafkaProducer инкапсулирует Kafka producer и тему
@@ -119,7 +121,7 @@ func (kp *KafkaProducer) SendNotification(ctx context.Context, notification Noti
 }
 
 // SendPushNotification отправляет push-уведомление с использованием Expo Push API
-func SendPushNotification(deviceToken, message string) error {
+func SendPushNotification(deviceToken, message string, highPriority bool) error {
 	client := expo.NewPushClient(nil)
 
 	// Создаем сообщение для отправки
@@ -128,19 +130,23 @@ func SendPushNotification(deviceToken, message string) error {
 	pushMessage := expo.PushMessage{
 		To:    []expo.ExponentPushToken{pushToken},
 		Sound: "default",
-		Title: "⚠️Напоминание об оплате",
-		// Title: "❗🔔⚠️ Напоминание об оплате!",
+		Title: "Напоминание об оплате!",
 		Body:  message,
 		ChannelID: "payment-reminders", // <--- добавляем channelId
 	}
 
-	// Устанавливаем URL изображения
-    imageURL := os.Getenv("ICON_PUSH_FILES_URL")
-
-    // Добавляем поле image для Android
-    pushMessage.Data = map[string]string{
-        "image": imageURL,
+	if highPriority {
+        pushMessage.Title = "⚠️Напоминание об оплате!"
     }
+
+	// if highPriority {
+    //     // Добавляем дополнительные данные для заметного уведомления
+    //     imageURL := os.Getenv("ICON_PUSH_FILES_URL")
+    //     pushMessage.Data = map[string]string{
+    //         "image": imageURL,
+    //     }
+    //     pushMessage.Title = "❗🔔⚠️💳 Напоминание об оплате!"
+    // }
 
 	// Отправляем уведомление
 	response, err := client.Publish(&pushMessage)
@@ -155,55 +161,54 @@ func SendPushNotification(deviceToken, message string) error {
 		return fmt.Errorf("push notification request failed: %v", err)
 	}
 
+    // Проверяем детальные статусы
+	// Обрабатываем результаты отправки
+    if pushErr, ok := err.(*expo.PushResponseError); ok {
+		if pushErr.Response != nil && pushErr.Response.Details != nil {
+			if errDetail, exists := pushErr.Response.Details["error"]; exists {
+				switch errDetail {
+				case expo.ErrorDeviceNotRegistered, "InvalidToken":
+					logger.Warn("Invalid device token. Removing from DB", "token", deviceToken)
+					// Удаляем/обнуляем токен в БД
+					go removeDeviceTokenByValue(deviceToken)
+				case expo.ErrorMessageTooBig:
+					logger.Error("Message too big", "token", deviceToken)
+				case expo.ErrorMessageRateExceeded:
+					logger.Error("Message rate exceeded", "token", deviceToken)
+				case "InvalidCredentials":
+					logger.Error("Invalid Expo credentials provided")
+					// Возможно, требуется обновить токены или проверить конфигурацию
+				default:
+					logger.Warn("Unhandled error from Expo", "error", errDetail)
+				}
+			}
+		}
+	}
+
 	logger.Info("Push notification sent successfully")
 	logger.Debug("Push notification sent with content", "deviceToken", deviceToken, "message", message)
 	return nil
 }
 
-// // SendPushNotification отправляет push-уведомление с использованием Expo Push API
-// func SendPushNotification(deviceToken, message string) error {
-// 	pushMessage := map[string]interface{}{
-// 		"to":    deviceToken,
-// 		"sound": "default",
-// 		"title": "Subscription Reminder",
-// 		"body":  message,
-// 	}
+// removeDeviceTokenByValue ищет пользователя с таким deviceToken и обнуляет поле device_token
+func removeDeviceTokenByValue(token string) {
+    if token == "" {
+        return
+    }
+    var user models.User
+    if err := db.GormDB.Where("device_token = ?", token).First(&user).Error; err != nil {
+        if err == gorm.ErrRecordNotFound {
+            logger.Warn("No user found with this device token", "token", token)
+        } else {
+            logger.Error("Error while searching user by token", "error", err)
+        }
+        return
+    }
 
-// 	jsonData, err := json.Marshal(pushMessage)
-// 	if err != nil {
-// 		logger.Error("Failed to marshal push message", "error", err)
-// 		return fmt.Errorf("failed to marshal push message: %v", err)
-// 	}
-
-// 	req, err := http.NewRequest("POST", os.Getenv("EXPO_URL_SEND"), bytes.NewBuffer(jsonData))
-// 	if err != nil {
-// 		logger.Error("Failed to create HTTP request for push notification", "error", err)
-// 		return fmt.Errorf("failed to create HTTP request: %v", err)
-// 	}
-
-// 	req.Header.Set("Content-Type", "application/json")
-
-// 	client := &http.Client{}
-// 	resp, err := client.Do(req)
-// 	if err != nil {
-// 		logger.Error("Failed to send push notification", "error", err)
-// 		return fmt.Errorf("failed to send push notification: %v", err)
-// 	}
-// 	defer resp.Body.Close()
-
-// 	responseData, err := io.ReadAll(resp.Body)
-// 	if err != nil {
-// 		logger.Error("Failed to read push notification response body", "error", err)
-// 	}
-// 	logger.Debug("Push notification response received", "response", string(responseData))
-
-// 	if resp.StatusCode != http.StatusOK {
-// 		logger.Warn("Push notification request failed", "status", resp.StatusCode)
-// 		return fmt.Errorf("push notification request failed with status: %v", resp.StatusCode)
-// 	}
-
-// 	// Log на уровне отладки, чтобы не раскрывать содержимое сообщений в производственных logs
-// 	logger.Info("Push notification sent successfully")
-// 	logger.Debug("Push notification sent with content", "deviceToken", deviceToken, "message", message)
-// 	return nil
-// }
+    user.DeviceToken = ""
+    if err := db.GormDB.Save(&user).Error; err != nil {
+        logger.Error("Failed to clear device token", "userID", user.ID, "error", err)
+    } else {
+        logger.Info("Device token cleared successfully", "userID", user.ID)
+    }
+}

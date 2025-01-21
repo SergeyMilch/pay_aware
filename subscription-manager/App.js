@@ -199,7 +199,7 @@ async function createVibrationChannel() {
       await Notifications.setNotificationChannelAsync("payment-reminders", {
         name: "Payment Reminders", // любое описание
         importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250], // паттерн вибрации
+        vibrationPattern: [0, 500, 250, 500], // паттерн вибрации
         sound: "default", // при желании можно указать "default"
         lightColor: "#FF231F7C", // при желании цвет светодиода
       });

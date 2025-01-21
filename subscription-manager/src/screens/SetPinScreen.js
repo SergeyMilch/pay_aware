@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TextInput, Button, Alert, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+} from "react-native";
 import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
 import { setPin as setPinApi, checkTokenAndNavigate } from "../api/api"; // Импорт функции setPinApi
@@ -79,7 +86,9 @@ const SetPinScreen = ({ navigation }) => {
         maxLength={4}
         style={styles.input}
       />
-      <Button title="Установить ПИН-код" onPress={handleSetPin} />
+      <TouchableOpacity onPress={handleSetPin} style={styles.setPinButton}>
+        <Text style={styles.setPinButtonText}>Установить ПИН-код</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -97,6 +106,19 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     width: "80%",
     textAlign: "center",
+  },
+  setPinButton: {
+    backgroundColor: "#7b6dae", // Цвет кнопки
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  setPinButtonText: {
+    color: "#fff", // Цвет текста
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 

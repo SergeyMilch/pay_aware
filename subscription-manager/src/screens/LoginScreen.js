@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   button: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#7b6dae",
     padding: 12,
     borderRadius: 4,
     alignItems: "center",
