@@ -258,6 +258,7 @@ func LoginUser(c *gin.Context) {
 	// Генерируем JWT токен
 	cfg := config.LoadConfig()
 	token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 7*24*time.Hour)
+
 	if err != nil {
 		logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
@@ -412,26 +413,51 @@ func LogoutUser(c *gin.Context) {
 
 // DeleteUserAccount удаляет аккаунт пользователя и связанные записи
 func DeleteUserAccount(c *gin.Context) {
-    userID, exists := c.Get("userID")
-    if !exists {
-        logger.Warn("User ID is missing in context")
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-        return
-    }
+	userID, exists := c.Get("userID")
+	if !exists {
+		logger.Warn("User ID is missing in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
 
-    userIDInt, ok := userID.(int)
-    if !ok {
-        logger.Error("Invalid user ID type in context")
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-        return
-    }
+	userIDInt, ok := userID.(int)
+	if !ok {
+		logger.Error("Invalid user ID type in context")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
-    // Удаляем пользователя целиком
-    if err := db.GormDB.Delete(&models.User{}, userIDInt).Error; err != nil {
-        logger.Error("Failed to delete user account", "userID", userIDInt, "error", err)
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user account"})
-        return
-    }
+	// Начало транзакции
+	tx := db.GormDB.Begin()
+	if tx.Error != nil {
+		logger.Error("Failed to begin transaction", "error", tx.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
 
-    c.JSON(http.StatusOK, gin.H{"message": "User account deleted successfully"})
+	// Удаление пользователя
+	if err := tx.Delete(&models.User{}, userIDInt).Error; err != nil {
+		logger.Error("Failed to delete user account", "userID", userIDInt, "error", err)
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user account"})
+		return
+	}
+
+	// Физическое удаление записей (Unscoped) для каскадного удаления подписок и уведомлений
+	// Поскольку soft delete не триггерит ON DELETE CASCADE
+	if err := tx.Unscoped().Where("user_id = ?", userIDInt).Delete(&models.Subscription{}).Error; err != nil {
+		logger.Error("Failed to delete user subscriptions", "userID", userIDInt, "error", err)
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user subscriptions"})
+		return
+	}
+
+	// Коммит транзакции
+	if err := tx.Commit().Error; err != nil {
+		logger.Error("Failed to commit transaction", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User account and related subscriptions deleted successfully"})
 }

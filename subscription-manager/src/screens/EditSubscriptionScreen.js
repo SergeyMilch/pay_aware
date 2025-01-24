@@ -139,7 +139,7 @@ const EditSubscriptionScreen = ({ navigation }) => {
 
       await updateSubscription(subscriptionId, updatedData);
       Alert.alert("Успех", "Подписка успешно обновлена.");
-      navigation.goBack();
+      navigation.navigate("SubscriptionList");
     } catch (error) {
       logger.error("Ошибка при обновлении подписки:", error);
       Alert.alert("Ошибка", "Не удалось обновить подписку. Попробуйте снова.");

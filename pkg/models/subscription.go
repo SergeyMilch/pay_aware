@@ -8,7 +8,7 @@ import (
 
 type Subscription struct {
     gorm.Model
-    UserID            int            `json:"user_id" gorm:"index:idx_user_nextpayment"`
+    UserID            int            `json:"user_id" gorm:"index:idx_user_nextpayment;constraint:OnDelete:CASCADE;"`
     ServiceName       string         `json:"service_name"`
     Cost              float64        `json:"cost"`
     NextPaymentDate   time.Time      `json:"next_payment_date" gorm:"type:timestamptz;index:idx_user_nextpayment"` // Дата напоминания (разделили даты на напоминание и списание)

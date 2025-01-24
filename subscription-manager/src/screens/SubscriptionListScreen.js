@@ -24,6 +24,52 @@ import { navigationRef } from "../navigation/navigationService"; // Импорт
 import HeaderMenu from "../components/HeaderMenu"; // <-- чтобы динамически рендерить в header
 import Icon from "react-native-vector-icons/Ionicons";
 
+/** Функция для склонения (дней, месяцев, лет) */
+function declOfNum(number, titles) {
+  number = Math.abs(number);
+  const n = number % 100;
+  if (n >= 5 && n <= 20) {
+    return titles[2];
+  }
+  const n1 = number % 10;
+  if (n1 === 1) {
+    return titles[0];
+  }
+  if (n1 >= 2 && n1 <= 4) {
+    return titles[1];
+  }
+  return titles[2];
+}
+
+/** Функция, которая возвращает строку вида:
+ * "следующий платёж через 5 дней" / "через 1 месяц" / "через 2 года" и т.д.
+ */
+function getNextPaymentText(dateString) {
+  if (!dateString) return "Нет данных";
+  const now = new Date();
+  const nextPayment = new Date(dateString);
+  const diffMs = nextPayment - now;
+
+  if (diffMs <= 0) {
+    return "Просрочено";
+  }
+
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 31) {
+    const dWord = declOfNum(diffDays, ["день", "дня", "дней"]);
+    return `следующий платёж через ${diffDays} ${dWord}`;
+  } else if (diffDays < 365) {
+    const diffMonths = Math.ceil(diffDays / 30);
+    const mWord = declOfNum(diffMonths, ["месяц", "месяца", "месяцев"]);
+    return `следующий платёж через ${diffMonths} ${mWord}`;
+  } else {
+    const diffYears = Math.ceil(diffDays / 365);
+    const yWord = declOfNum(diffYears, ["год", "года", "лет"]);
+    return `следующий платёж через ${diffYears} ${yWord}`;
+  }
+}
+
 const SubscriptionListScreen = () => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -185,52 +231,6 @@ const SubscriptionListScreen = () => {
     calculateTotalCost(filteredSubscriptions);
   }, [filteredSubscriptions]);
 
-  // Удаление
-  const confirmDelete = (id) => {
-    Alert.alert(
-      "Удаление подписки",
-      "Вы уверены, что хотите удалить эту подписку?",
-      [
-        {
-          text: "Нет",
-          style: "cancel",
-        },
-        {
-          text: "Да",
-          onPress: () => handleDelete(id),
-          style: "destructive",
-        },
-      ],
-      { cancelable: true }
-    );
-  };
-
-  const handleDelete = async (id) => {
-    if (!id) {
-      logger.error("Идентификатор подписки отсутствует, удаление невозможно");
-      return;
-    }
-
-    try {
-      logger.log(`Попытка удалить подписку с ID: ${id}`);
-      const token = await SecureStore.getItemAsync("authToken");
-      if (!token) {
-        logger.warn("Токен отсутствует, перенаправляем на экран логина");
-        Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
-        if (navigationRef.isReady()) {
-          navigationRef.navigate("Login");
-        }
-        return;
-      }
-
-      await deleteSubscription(id);
-      logger.log(`Подписка с ID ${id} успешно удалена`);
-      await fetchSubscriptions();
-    } catch (error) {
-      logger.error("Ошибка при удалении подписки:", error);
-    }
-  };
-
   // Добавление
   const handleAddSubscription = async () => {
     logger.log("Переход на экран создания подписки");
@@ -299,102 +299,54 @@ const SubscriptionListScreen = () => {
         }
         renderItem={({ item }) => {
           const now = new Date();
-          const isReminderTime = new Date(item.notification_date) <= now;
+          const isReminderTime =
+            item.notification_date && new Date(item.notification_date) <= now;
 
           return (
             <View style={styles.subscriptionItem}>
-              <TouchableOpacity
-                onPress={() => {
-                  logger.log(
-                    `Переход на экран деталей подписки с ID: ${item.ID}`
-                  );
-                  navigationRef.isReady() &&
-                    navigationRef.navigate("SubscriptionDetail", {
-                      subscription: item,
-                    });
-                }}
-                style={styles.subscriptionDetails}
-              >
-                <View style={styles.subscriptionInfoContainer}>
-                  <Text style={styles.subscriptionName} numberOfLines={2}>
-                    {item?.service_name}
-                  </Text>
+              {/* Верхняя строка: Название + воскл. знак слева, Цена справа */}
+              <View style={styles.topRow}>
+                <View style={styles.leftContainer}>
+                  {/* 
+                    Оборачиваем название в TouchableOpacity, 
+                    чтобы перейти на экран деталей только при клике на текст 
+                  */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      navigationRef.isReady() &&
+                        navigationRef.navigate("SubscriptionDetail", {
+                          subscription: item,
+                          availableTags,
+                        });
+                    }}
+                  >
+                    <Text style={styles.subscriptionName} numberOfLines={2}>
+                      {item?.service_name}
+                    </Text>
+                  </TouchableOpacity>
+
                   {isReminderTime && (
                     <View style={styles.reminder}>
                       <Text style={styles.reminderText}>!</Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.subscriptionPrice}>
-                  {item?.cost.toFixed(2)} ₽
-                </Text>
-                {/* Показываем тег и дату платежа, если есть */}
-                {(item?.tag || item.next_payment_date) && (
-                  <View style={styles.tagDateContainer}>
-                    <View style={styles.tagContainer}>
-                      {item.tag ? (
-                        <>
-                          <Icon
-                            name="bookmark-outline"
-                            size={16}
-                            color="#444"
-                            style={styles.iconStyle}
-                          />
-                          <Text style={styles.tagText}>{item.tag}</Text>
-                        </>
-                      ) : (
-                        <View style={styles.placeholder} />
-                      )}
-                    </View>
-                    <View style={styles.dateContainer}>
-                      {item.next_payment_date ? (
-                        <>
-                          <Icon
-                            name="card-outline"
-                            size={16}
-                            color="#444"
-                            style={styles.iconStyle}
-                          />
-                          <Text style={styles.dateText}>
-                            {new Date(
-                              item.next_payment_date
-                            ).toLocaleDateString("ru-RU", {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                            })}
-                          </Text>
-                        </>
-                      ) : (
-                        <View style={styles.placeholder} />
-                      )}
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
+                <View style={styles.rightContainer}>
+                  <Text style={styles.subscriptionPrice}>
+                    {item?.cost.toFixed(2)} ₽
+                  </Text>
+                </View>
+              </View>
 
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.button, styles.editButton]}
-                  onPress={() => {
-                    logger.log(
-                      `Переход на экран редактирования подписки с ID: ${item.ID}`
-                    );
-                    navigationRef.isReady() &&
-                      navigationRef.navigate("EditSubscription", {
-                        subscriptionId: item.ID,
-                        availableTags: availableTags, // <-- то же самое передаём availableTags
-                      });
-                  }}
-                >
-                  <Text style={styles.buttonText}>Редактировать</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.button, styles.deleteButton]}
-                  onPress={() => confirmDelete(item.ID)}
-                >
-                  <Text style={styles.buttonText}>Удалить</Text>
-                </TouchableOpacity>
+              {/* Нижняя строка: справа текст "следующий платёж через X дней" */}
+              <View style={styles.bottomRow}>
+                <View style={{ flex: 1 }} />
+                {item.next_payment_date && (
+                  // Убираем TouchableOpacity, оставляем просто Text
+                  <Text style={styles.nextPaymentText}>
+                    {getNextPaymentText(item.next_payment_date)}
+                  </Text>
+                )}
               </View>
             </View>
           );
@@ -428,7 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#d5d2ec",
     borderRadius: 8,
     marginBottom: 16,
-    // width: "80%",
   },
   totalCostText: {
     fontSize: 20,
@@ -436,32 +387,37 @@ const styles = StyleSheet.create({
     color: "#000",
     textAlign: "center",
   },
+  resetFilterButton: {
+    marginTop: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "#7b6dae",
+    borderRadius: 4,
+    alignSelf: "flex-start",
+  },
   subscriptionItem: {
-    padding: 16,
+    padding: 12,
     backgroundColor: "#fff",
     borderRadius: 8,
     marginBottom: 10,
   },
-  subscriptionInfoContainer: {
+  topRow: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
   },
-  subscriptionDetails: {
-    marginBottom: 8,
+  leftContainer: {
+    flexDirection: "row",
+    flex: 1,
+    alignItems: "center",
   },
   subscriptionName: {
     fontSize: 18,
     fontWeight: "bold",
-    flex: 1,
-  },
-  subscriptionPrice: {
-    fontSize: 16,
-    color: "#888",
-    textAlign: "right",
+    flexShrink: 1,
+    textDecorationLine: "underline", // <-- добавили подчеркивание
   },
   reminder: {
-    marginLeft: 10,
+    marginLeft: 6,
     backgroundColor: "red",
     borderRadius: 10,
     width: 20,
@@ -470,30 +426,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   reminderText: {
-    color: "white",
-    fontWeight: "bold",
-  },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 10,
-  },
-  button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginLeft: 10,
-  },
-  editButton: {
-    backgroundColor: "#7b6dae",
-  },
-  deleteButton: {
-    backgroundColor: "tomato",
-  },
-  buttonText: {
     color: "#fff",
     fontWeight: "bold",
-    textAlign: "center",
+  },
+  rightContainer: {
+    flex: 0,
+    marginLeft: 8,
+    alignItems: "flex-end",
+  },
+  subscriptionPrice: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#888",
+  },
+  bottomRow: {
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  nextPaymentText: {
+    fontSize: 14,
+    color: "#444",
+    textAlign: "right",
   },
   addButton: {
     marginTop: 20,
@@ -506,36 +460,6 @@ const styles = StyleSheet.create({
     color: "#000",
     fontWeight: "bold",
     fontSize: 16,
-  },
-  tagDateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  tagContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1, // Занимает всё доступное пространство слева
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    // flex: 0, // По умолчанию flex: 0
-  },
-  iconStyle: {
-    marginRight: 4,
-  },
-  tagText: {
-    fontSize: 14,
-    color: "#444",
-  },
-  dateText: {
-    fontSize: 14,
-    color: "#444",
-  },
-  placeholder: {
-    width: 20, // Ширина иконки, чтобы сохранить выравнивание
-    height: 20,
   },
 });
 

@@ -135,8 +135,8 @@ const HeaderMenu = ({ navigation, availableTags, selectedTag }) => {
           <Menu.Item
             // Можно стилизовать как divider, но в React Native Paper для Menu.Item
             // нет встроенного разделителя, поэтому можно просто
-            // добавить Menu.Item с "----"
-            title="------------------------------"
+            // добавить Menu.Item с "_____"
+            title="______________________________"
             disabled={true}
           />
 
