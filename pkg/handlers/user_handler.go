@@ -428,36 +428,43 @@ func DeleteUserAccount(c *gin.Context) {
 	}
 
 	// Начало транзакции
-	tx := db.GormDB.Begin()
-	if tx.Error != nil {
-		logger.Error("Failed to begin transaction", "error", tx.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
+    tx := db.GormDB.Begin()
+    if tx.Error != nil {
+        logger.Error("Failed to begin transaction", "error", tx.Error)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+        return
+    }
 
-	// Удаление пользователя
-	if err := tx.Delete(&models.User{}, userIDInt).Error; err != nil {
-		logger.Error("Failed to delete user account", "userID", userIDInt, "error", err)
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user account"})
-		return
-	}
+    // Мягко удаляем пользователя (soft delete)
+    if err := tx.Delete(&models.User{}, userIDInt).Error; err != nil {
+        logger.Error("Failed to delete user account (soft delete)", "userID", userIDInt, "error", err)
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user account"})
+        return
+    }
 
-	// Физическое удаление записей (Unscoped) для каскадного удаления подписок и уведомлений
-	// Поскольку soft delete не триггерит ON DELETE CASCADE
-	if err := tx.Unscoped().Where("user_id = ?", userIDInt).Delete(&models.Subscription{}).Error; err != nil {
-		logger.Error("Failed to delete user subscriptions", "userID", userIDInt, "error", err)
-		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user subscriptions"})
-		return
-	}
+    // Физически удаляем связанные Subscription (Unscoped)
+    if err := tx.Unscoped().Where("user_id = ?", userIDInt).Delete(&models.Subscription{}).Error; err != nil {
+        logger.Error("Failed to delete user subscriptions", "userID", userIDInt, "error", err)
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user subscriptions"})
+        return
+    }
 
-	// Коммит транзакции
-	if err := tx.Commit().Error; err != nil {
-		logger.Error("Failed to commit transaction", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		return
-	}
+    // Физически удаляем связанные Notification (подстраховка)
+    if err := tx.Unscoped().Where("user_id = ?", userIDInt).Delete(&models.Notification{}).Error; err != nil {
+        logger.Error("Failed to delete user notifications", "userID", userIDInt, "error", err)
+        tx.Rollback()
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Unable to delete user notifications"})
+        return
+    }
+
+    // Коммит транзакции
+    if err := tx.Commit().Error; err != nil {
+        logger.Error("Failed to commit transaction", "error", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+        return
+    }
 
 	c.JSON(http.StatusOK, gin.H{"message": "User account and related subscriptions deleted successfully"})
 }

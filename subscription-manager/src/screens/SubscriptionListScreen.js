@@ -8,11 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import {
-  getSubscriptions,
-  deleteSubscription,
-  initializeAuthToken,
-} from "../api/api";
+import { getSubscriptions, initializeAuthToken } from "../api/api";
 import {
   useIsFocused,
   useNavigation,
@@ -20,99 +16,58 @@ import {
 } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import logger from "../utils/logger";
-import { navigationRef } from "../navigation/navigationService"; // Импорт navigationRef
-import HeaderMenu from "../components/HeaderMenu"; // <-- чтобы динамически рендерить в header
-import Icon from "react-native-vector-icons/Ionicons";
-
-/** Функция для склонения (дней, месяцев, лет) */
-function declOfNum(number, titles) {
-  number = Math.abs(number);
-  const n = number % 100;
-  if (n >= 5 && n <= 20) {
-    return titles[2];
-  }
-  const n1 = number % 10;
-  if (n1 === 1) {
-    return titles[0];
-  }
-  if (n1 >= 2 && n1 <= 4) {
-    return titles[1];
-  }
-  return titles[2];
-}
-
-/** Функция, которая возвращает строку вида:
- * "следующий платёж через 5 дней" / "через 1 месяц" / "через 2 года" и т.д.
- */
-function getNextPaymentText(dateString) {
-  if (!dateString) return "Нет данных";
-  const now = new Date();
-  const nextPayment = new Date(dateString);
-  const diffMs = nextPayment - now;
-
-  if (diffMs <= 0) {
-    return "Просрочено";
-  }
-
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 31) {
-    const dWord = declOfNum(diffDays, ["день", "дня", "дней"]);
-    return `следующий платёж через ${diffDays} ${dWord}`;
-  } else if (diffDays < 365) {
-    const diffMonths = Math.ceil(diffDays / 30);
-    const mWord = declOfNum(diffMonths, ["месяц", "месяца", "месяцев"]);
-    return `следующий платёж через ${diffMonths} ${mWord}`;
-  } else {
-    const diffYears = Math.ceil(diffDays / 365);
-    const yWord = declOfNum(diffYears, ["год", "года", "лет"]);
-    return `следующий платёж через ${diffYears} ${yWord}`;
-  }
-}
+import { navigationRef } from "../navigation/navigationService";
+import HeaderMenu from "../components/HeaderMenu";
+import { getNextPaymentText } from "../utils/dateCalculation";
 
 const SubscriptionListScreen = () => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCost, setTotalCost] = useState(0);
 
-  // Для фильтра по тегам
-  const [availableTags, setAvailableTags] = useState([]); // Массив уникальных тегов
-  const [selectedTag, setSelectedTag] = useState(""); // Текущий выбранный тег
+  // !!! Новый стейт, чтобы "текущее время" обновлялось
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Хук, чтобы узнать, фокусирован ли экран
+  // Массив уникальных тегов
+  const [availableTags, setAvailableTags] = useState([]);
+  const [selectedTag, setSelectedTag] = useState("");
+
   const isFocused = useIsFocused();
-
-  // Хук, чтобы получить доступ к navigation (для setOptions)
   const navigation = useNavigation();
-
-  const route = useRoute(); // чтобы ловить params
+  const route = useRoute();
 
   // Функция сортировки подписок по дате платежа
-  const sortSubscriptionsByDate = (subscriptions, order = "asc") => {
-    return subscriptions.sort((a, b) => {
+  const sortSubscriptionsByDate = (subs, order = "asc") => {
+    return subs.sort((a, b) => {
       const dateA = a.next_payment_date
         ? new Date(a.next_payment_date)
         : new Date(0);
       const dateB = b.next_payment_date
         ? new Date(b.next_payment_date)
         : new Date(0);
-
-      if (order === "asc") {
-        return dateA - dateB;
-      } else {
-        return dateB - dateA;
-      }
+      return order === "asc" ? dateA - dateB : dateB - dateA;
     });
   };
 
-  // При возвращении с TagFilterScreen, если newSelectedTag есть -> применяем
+  // При возвращении с TagFilterScreen
   useEffect(() => {
     if (route.params?.newSelectedTag !== undefined) {
       setSelectedTag(route.params.newSelectedTag);
-      // Чтобы не срабатывало повторно, сбрасываем
       navigation.setParams({ newSelectedTag: undefined });
     }
   }, [route.params?.newSelectedTag]);
+
+  // !!! useEffect, который каждую минуту обновляет currentTime
+  useEffect(() => {
+    // Запускаем таймер, обновляющий стейт раз в 60 секунд
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => {
+      clearInterval(timer); // при размонтировании
+    };
+  }, []);
 
   // useEffect на фокус (загрузка подписок)
   useEffect(() => {
@@ -136,13 +91,9 @@ const SubscriptionListScreen = () => {
     };
 
     if (isFocused) {
-      // Если skipRefresh === true, то пропускаем перезагрузку
       if (route.params?.skipRefresh) {
-        // Например, просто сбросим этот параметр, чтобы он не "застрял"
         navigation.setParams({ skipRefresh: false });
-        // И не вызываем fetchSubscriptions -> значит не будет мигать
       } else {
-        // Обычная логика, которая была: грузим подписки
         initializeData();
       }
     }
@@ -167,39 +118,33 @@ const SubscriptionListScreen = () => {
       logger.log("Начало загрузки подписок");
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
-        logger.warn("Токен отсутствует, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
         return;
       }
 
       setLoading(true);
-
       const data = await getSubscriptions();
       logger.log(
         "Подписки успешно загружены. Количество подписок:",
         data.length
       );
-      setSubscriptions(data);
 
-      // Сортируем подписки по дате платежа (по возрастанию)
-      const sortedData = sortSubscriptionsByDate([...data], "asc"); // Копируем массив, чтобы избежать мутации оригинала
+      // Сортируем подписки
+      const sortedData = sortSubscriptionsByDate([...data], "asc");
       setSubscriptions(sortedData);
 
       // Собираем уникальные теги
       const tagsSet = new Set();
       data.forEach((sub) => {
-        if (sub.tag) {
-          tagsSet.add(sub.tag);
-        }
+        if (sub.tag) tagsSet.add(sub.tag);
       });
       setAvailableTags(Array.from(tagsSet));
 
-      // По умолчанию считаем общую стоимость (без фильтра)
+      // Считаем общую стоимость
       calculateTotalCost(data);
     } catch (error) {
       if (error.message === "SessionExpired") {
-        logger.warn("Сессия истекла, перенаправляем на экран логина");
         Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
         navigationRef.navigate("Login");
       } else {
@@ -207,18 +152,14 @@ const SubscriptionListScreen = () => {
       }
     } finally {
       setLoading(false);
-      logger.log("Загрузка подписок завершена");
     }
   };
 
-  // Расчет стоимости
-  const calculateTotalCost = (subscriptions) => {
-    logger.log("Начинаем расчет общей стоимости подписок");
-    const cost = subscriptions.reduce((sum, subscription) => {
+  const calculateTotalCost = (subs) => {
+    const cost = subs.reduce((sum, subscription) => {
       return sum + (subscription.cost || 0);
     }, 0);
     setTotalCost(cost);
-    logger.log("Общая стоимость подписок:", cost);
   };
 
   // Фильтрация подписок по тегу
@@ -236,7 +177,6 @@ const SubscriptionListScreen = () => {
     logger.log("Переход на экран создания подписки");
     const token = await SecureStore.getItemAsync("authToken");
     if (!token) {
-      logger.warn("Токен отсутствует, перенаправляем на экран логина");
       Alert.alert("Сессия истекла", "Пожалуйста, войдите снова.");
       if (navigationRef.isReady()) {
         navigationRef.navigate("Login");
@@ -246,12 +186,11 @@ const SubscriptionListScreen = () => {
 
     if (navigationRef.isReady()) {
       navigationRef.navigate("CreateSubscription", {
-        availableTags: availableTags, // <-- передаём availableTags вместе
+        availableTags,
       });
     }
   };
 
-  // Рендер
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -262,13 +201,13 @@ const SubscriptionListScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Отображаем текущую общую стоимость (именно отфильтрованных) */}
+      {/* Блок с общей стоимостью */}
       <View style={styles.totalCostContainer}>
         <Text style={styles.totalCostText}>
           Общая стоимость: {totalCost.toFixed(2)} ₽
         </Text>
 
-        {/* Показываем, какой тег выбран */}
+        {/* Показ, какой тег выбран (если есть) */}
         {selectedTag && (
           <View style={{ marginTop: 5 }}>
             <Text style={{ fontStyle: "italic" }}>
@@ -298,19 +237,16 @@ const SubscriptionListScreen = () => {
           item?.ID ? item.ID.toString() : index.toString()
         }
         renderItem={({ item }) => {
+          // Показываем воскл. знак, если уже пора напоминать
           const now = new Date();
           const isReminderTime =
             item.notification_date && new Date(item.notification_date) <= now;
 
           return (
             <View style={styles.subscriptionItem}>
-              {/* Верхняя строка: Название + воскл. знак слева, Цена справа */}
+              {/* Верхняя строка: Название (с кликом к деталям) + "!" + Цена */}
               <View style={styles.topRow}>
                 <View style={styles.leftContainer}>
-                  {/* 
-                    Оборачиваем название в TouchableOpacity, 
-                    чтобы перейти на экран деталей только при клике на текст 
-                  */}
                   <TouchableOpacity
                     onPress={() => {
                       navigationRef.isReady() &&
@@ -338,13 +274,13 @@ const SubscriptionListScreen = () => {
                 </View>
               </View>
 
-              {/* Нижняя строка: справа текст "следующий платёж через X дней" */}
+              {/* Нижняя строка: справа - "До платежа осталось X..." */}
               <View style={styles.bottomRow}>
                 <View style={{ flex: 1 }} />
                 {item.next_payment_date && (
-                  // Убираем TouchableOpacity, оставляем просто Text
                   <Text style={styles.nextPaymentText}>
-                    {getNextPaymentText(item.next_payment_date)}
+                    {/** Передаем currentTime во вторую функцию для пересчёта */}
+                    {getNextPaymentText(item.next_payment_date, currentTime)}
                   </Text>
                 )}
               </View>
@@ -363,6 +299,9 @@ const SubscriptionListScreen = () => {
   );
 };
 
+export default SubscriptionListScreen;
+
+/** Стили */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -387,14 +326,6 @@ const styles = StyleSheet.create({
     color: "#000",
     textAlign: "center",
   },
-  resetFilterButton: {
-    marginTop: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: "#7b6dae",
-    borderRadius: 4,
-    alignSelf: "flex-start",
-  },
   subscriptionItem: {
     padding: 12,
     backgroundColor: "#fff",
@@ -414,7 +345,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     flexShrink: 1,
-    textDecorationLine: "underline", // <-- добавили подчеркивание
+    textDecorationLine: "underline",
   },
   reminder: {
     marginLeft: 6,
@@ -437,7 +368,7 @@ const styles = StyleSheet.create({
   subscriptionPrice: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#888",
+    color: "#7b6dae",
   },
   bottomRow: {
     marginTop: 4,
@@ -462,5 +393,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-
-export default SubscriptionListScreen;
