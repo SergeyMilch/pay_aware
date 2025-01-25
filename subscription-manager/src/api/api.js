@@ -8,7 +8,7 @@ import { API_URL } from "@env";
 // Настройка экземпляра axios с базовым URL и заголовками
 const api = axios.create({
   baseURL: API_URL,
-  // baseURL: "https://20d8-62-4-57-198.ngrok-free.app",
+  // baseURL: "https://7cec-62-4-57-198.ngrok-free.app",
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",

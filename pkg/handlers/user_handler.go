@@ -258,7 +258,6 @@ func LoginUser(c *gin.Context) {
 	// Генерируем JWT токен
 	cfg := config.LoadConfig()
 	token, err := auth.GenerateJWT(int(user.ID), cfg.JWTSecret, 7*24*time.Hour)
-
 	if err != nil {
 		logger.Error("Failed to generate JWT token", "userID", user.ID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})

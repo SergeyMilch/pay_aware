@@ -24,47 +24,73 @@ export function getNextPaymentText(dateString, currentTime = new Date()) {
   if (!dateString) return "Нет данных о платеже";
 
   const nextPayment = new Date(dateString);
-  // Разница в миллисекундах
-  const diffMs = nextPayment.setHours(23, 59, 59, 999) - currentTime;
-  // Можно «округлить» дату платежа, например, до конца дня, чтобы если сегодня, то считалось "сегодня"
+  // Считаем разницу в миллисекундах для «точных» дней/часов
+  const diffMs = nextPayment - currentTime;
 
-  // diffMs < 0 → дата уже прошла
+  // Если дата уже прошла
   if (diffMs < 0) {
-    return "Платёж уже прошёл";
+    return "Дата платежа прошла";
   }
 
-  // Посмотрим, не является ли этот день "сегодня"
-  // Для упрощения можно считать: если год, месяц, дата совпадают — это сегодня
-  const isSameDay =
-    nextPayment.getDate() === currentTime.getDate() &&
-    nextPayment.getMonth() === currentTime.getMonth() &&
-    nextPayment.getFullYear() === currentTime.getFullYear();
+  // Вычислим «календарную» разницу в днях
+  const currentDay = new Date(
+    currentTime.getFullYear(),
+    currentTime.getMonth(),
+    currentTime.getDate()
+  );
+  const paymentDay = new Date(
+    nextPayment.getFullYear(),
+    nextPayment.getMonth(),
+    nextPayment.getDate()
+  );
+  // Количество полных дней между полуночью сегодняшнего дня и полуночью дня платежа
+  const diffDaysCalendar = Math.round(
+    (paymentDay - currentDay) / (1000 * 60 * 60 * 24)
+  );
 
-  if (isSameDay) {
+  // - Если diffDaysCalendar === 0, значит это та же календарная дата → «сегодня»
+  if (diffDaysCalendar === 0) {
     return "Платёж сегодня";
   }
-
-  // Если не сегодня, считаем разницу в днях (округлим вверх)
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-
-  // Если diffDays == 1, значит завтра
-  if (diffDays === 1) {
+  // - Если diffDaysCalendar === 1 → «завтра»
+  if (diffDaysCalendar === 1) {
     return "Платёж завтра";
   }
 
-  // Дальше обычная логика: дни, месяцы, годы
-  if (diffDays < 31) {
-    // «До платежа осталось X день/дня/дней»
-    const dWord = declOfNum(diffDays, ["день", "дня", "дней"]);
-    return `До платежа осталось ${diffDays} ${dWord}`;
-  } else if (diffDays < 365) {
-    // Месяцы
-    const diffMonths = Math.ceil(diffDays / 30);
-    const mWord = declOfNum(diffMonths, ["месяц", "месяца", "месяцев"]);
-    return `До платежа осталось ${diffMonths} ${mWord}`;
+  // Если календарная разница больше 1 или 2, используем «точное» кол-во суток
+  // (либо можно продолжить в том же календарном стиле).
+  // Для точности берём `Math.floor(...)` по разнице в миллисекундах:
+  const diffExactDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Если diffExactDays < 31, считаем днями
+  if (diffExactDays < 31) {
+    // одно слово для 1 дня ("остался"), другое для остальных ("осталось")
+    // вызываем функцию склонения для "день/дня/дней"
+    if (diffExactDays === 1) {
+      return "До платежа остался 1 день";
+    } else {
+      const dWord = declOfNum(diffExactDays, ["день", "дня", "дней"]);
+      return `До платежа осталось ${diffExactDays} ${dWord}`;
+    }
+  }
+
+  // Если diffExactDays < 365, считаем месяцами
+  const diffMonths = Math.floor(diffExactDays / 30);
+  if (diffExactDays < 365) {
+    if (diffMonths === 1) {
+      // Для одного месяца "остался 1 месяц"
+      return "До платежа остался 1 месяц";
+    } else {
+      const mWord = declOfNum(diffMonths, ["месяц", "месяца", "месяцев"]);
+      return `До платежа осталось ${diffMonths} ${mWord}`;
+    }
+  }
+
+  // Иначе считаем годами (примерно)
+  const diffYears = Math.floor(diffExactDays / 365);
+  if (diffYears === 1) {
+    return "До платежа остался 1 год";
   } else {
-    // Годы (примерно)
-    const diffYears = Math.ceil(diffDays / 365);
     const yWord = declOfNum(diffYears, ["год", "года", "лет"]);
     return `До платежа осталось ${diffYears} ${yWord}`;
   }

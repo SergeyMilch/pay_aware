@@ -118,7 +118,15 @@ const NotificationHistoryScreen = () => {
 
   const renderItem = ({ item }) => {
     const { message, sent_at, subscription, read_at } = item;
-    const date = new Date(sent_at).toLocaleString();
+
+    const date = new Date(sent_at).toLocaleString("ru-RU", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
     const isRead = read_at !== null;
 
     return (

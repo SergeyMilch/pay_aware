@@ -13,6 +13,8 @@ import { deleteSubscription, initializeAuthToken } from "../api/api";
  * - Название, цена
  * - Следующий платёж (конкретная дата)
  * - Тег
+ * - Приоритет уведомления
+ * - Тип повторения уведомления
  * - Кнопки "Редактировать" и "Удалить"
  */
 const SubscriptionDetailScreen = ({ route }) => {
@@ -29,6 +31,23 @@ const SubscriptionDetailScreen = ({ route }) => {
       </View>
     );
   }
+
+  // Функция для отображения типа уведомления по high_priority
+  const getPriorityText = (highPriority) => {
+    return highPriority ? "Более заметное уведомление" : "Обычное уведомление";
+  };
+
+  // Функция для отображения типа повторения уведомления
+  const getRecurrenceText = (recurrenceType) => {
+    switch (recurrenceType) {
+      case "monthly":
+        return "Ежемесячное уведомление";
+      case "yearly":
+        return "Ежегодное уведомление";
+      default:
+        return "Дата уведомления задана пользователем";
+    }
+  };
 
   // Подтверждение удаления
   const confirmDelete = (id) => {
@@ -150,6 +169,22 @@ const SubscriptionDetailScreen = ({ route }) => {
         <Text style={styles.value}>{createdAtString}</Text>
       </View>
 
+      {/* Новое поле: Приоритет уведомления */}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Приоритет уведомления:</Text>
+        <Text style={styles.value}>
+          {getPriorityText(subscription.high_priority)}
+        </Text>
+      </View>
+
+      {/* Новое поле: Тип повторения уведомления */}
+      <View style={styles.infoRow}>
+        <Text style={styles.label}>Тип повторения:</Text>
+        <Text style={styles.value}>
+          {getRecurrenceText(subscription.recurrence_type)}
+        </Text>
+      </View>
+
       {/* Кнопки "Редактировать" / "Удалить" */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
@@ -196,12 +231,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "regular",
     marginRight: 6,
+    marginBottom: 6,
   },
   value: {
-    fontSize: 16,
+    fontSize: 18, // Увеличен размер шрифта
     fontWeight: "bold",
+    fontStyle: "italic", // Добавлено курсивное начертание
     color: "#333",
   },
   buttonContainer: {
