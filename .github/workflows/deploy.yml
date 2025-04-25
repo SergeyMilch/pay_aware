@@ -114,6 +114,7 @@ jobs:
           EXPO_URL_SEND=${{ secrets.BACKEND_EXPO_URL_SEND }}
           SSL_CERT_PATH=${{ secrets.BACKEND_SSL_CERT_PATH }}
           SSL_KEY_PATH=${{ secrets.BACKEND_SSL_KEY_PATH }}
+          SSL_CERT_DIR=${{ secrets.BACKEND_SSL_CERT_DIR }}
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           RESET_PASSWORD_URL=${{ secrets.BACKEND_RESET_PASSWORD_URL }}
           SMTP_FROM=${{ secrets.BACKEND_SMTP_FROM }}
