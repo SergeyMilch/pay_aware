@@ -73,6 +73,7 @@ services:
     container_name: pay_aware_kafka
     restart: always
     environment:
+      ALLOW_PLAINTEXT_LISTENER: "yes"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: pay_aware_zookeeper:2181
       KAFKA_ZOOKEEPER_USER: ${KAFKA_ZOOKEEPER_USER}
